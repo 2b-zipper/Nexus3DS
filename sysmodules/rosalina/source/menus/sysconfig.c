@@ -541,24 +541,39 @@ void SysConfigMenu_ChangeScreenBrightness(void)
     // gsp:LCD GetLuminance is stubbed on O3DS so we have to implement it ourselves... damn it.
     // Assume top and bottom screen luminances are the same (should be; if not, we'll set them to the same values).
     u32 luminance = getCurrentLuminance(false);
-    u32 minLum = getMinLuminancePreset();
-    u32 maxLum = getMaxLuminancePreset();
+    const u32 minLum = getMinLuminancePreset();
+    const u32 maxLum = getMaxLuminancePreset();
+    const u32 trueMaxLum = 172; // https://www.3dbrew.org/wiki/GSPLCD:SetBrightnessRaw
+    const u32 trueMinLum = 5;
 
     do
     {
         Draw_Lock();
         Draw_DrawMenuFrame("Screen brightness");
         u32 posY = 40;
+
         posY = Draw_DrawFormattedString(
             10,
             posY,
             COLOR_WHITE,
-            "Current luminance: %lu (min. %lu, max. %lu)\n\n",
-            luminance,
-            minLum,
-            maxLum
+            "Current luminance: %lu\n",
+            luminance
         );
-        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Controls: Up/Down for +-1, Right/Left for +-10.\n");
+        posY = Draw_DrawFormattedString(
+            10,
+            posY,
+            COLOR_WHITE,
+            "Preset: %lu to %lu, Extended: %lu to %lu.\n\n",
+            minLum,
+            maxLum,
+            trueMinLum,
+            trueMaxLum
+        );
+
+
+        posY = Draw_DrawString(10, posY, COLOR_GREEN, "Controls:\n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Up/Down for +/-1, Right/Left for +/-10.\n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Hold L/R for extended limits.\n\n");
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Press A to start, B to exit.\n\n");
 
         posY = Draw_DrawString(10, posY, COLOR_RED, "WARNING: \n");
@@ -591,6 +606,8 @@ void SysConfigMenu_ChangeScreenBrightness(void)
 
     do
     {
+        u32 kHeld = 0;
+        kHeld = HID_PAD;
         u32 pressed = waitInputWithTimeout(1000);
         if (pressed & DIRECTIONAL_KEYS)
         {
@@ -603,12 +620,25 @@ void SysConfigMenu_ChangeScreenBrightness(void)
             else if (pressed & KEY_LEFT)
                 lum -= 10;
 
-            lum = lum < (s32)minLum ? (s32)minLum : lum;
-            lum = lum > (s32)maxLum ? (s32)maxLum : lum;
+            
+            if (kHeld & (KEY_L | KEY_R)) {
+                lum = lum < (s32)trueMinLum ? (s32)trueMinLum : lum;
+                lum = lum > (s32)trueMaxLum ? (s32)trueMaxLum : lum;
+            } else {
+                lum = lum < (s32)minLum ? (s32)minLum : lum;
+                lum = lum > (s32)maxLum ? (s32)maxLum : lum;
+            }
 
-            // We need to call gsp here because updating the active duty LUT is a bit tedious (plus, GSP has internal state).
-            // This is actually SetLuminance:
-            GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP) | BIT(GSP_SCREEN_BOTTOM), lum);
+            if (lum >= (s32)minLum && lum <= (s32)maxLum) {
+                // We need to call gsp here because updating the active duty LUT is a bit tedious (plus, GSP has internal state).
+                // This is actually SetLuminance:
+                GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP) | BIT(GSP_SCREEN_BOTTOM), lum);
+            } else {
+                // gsp doesn't accept extended luminance values, so we have to do it ourselves.
+                // buggy for now, the "if" statement is correct, it goes here if it's out of bounds
+                setBrightnessAlt(lum); // this function is buggy, and sets a very high value
+            }
+
         }
 
         if (pressed & KEY_B)
