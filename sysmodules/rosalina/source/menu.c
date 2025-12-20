@@ -517,6 +517,7 @@ u32 Get_TitleID(u64* titleId)
 static void menuDraw(Menu *menu, u32 selected)
 {
     char versionString[16];
+    char nexusVersionString[16];
     s64 out;
     u32 version, commitHash, seconds, minutes, hours, days, year, month;
     u64 milliseconds = osGetTime();
@@ -582,6 +583,8 @@ static void menuDraw(Menu *menu, u32 selected)
     else
         sprintf(versionString, "v%lu.%lu.%lu", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version), GET_VERSION_REVISION(version));
 
+    sprintf(nexusVersionString, "v%d.%d.%d", NEXUS_VERSION_MAJOR, NEXUS_VERSION_MINOR, NEXUS_VERSION_BUILD);
+
     Draw_DrawMenuFrame(menu->title);
     
     u32 numItems = menuCountItems(menu);
@@ -644,10 +647,10 @@ static void menuDraw(Menu *menu, u32 selected)
     }
 
     if (isRelease) {
-        Draw_DrawString(10, SCREEN_BOT_HEIGHT - 30, COLOR_ORANGE, "Nexus3DS");
+        Draw_DrawFormattedString(10, SCREEN_BOT_HEIGHT - 30, COLOR_ORANGE, "Nexus3DS %s", nexusVersionString);
         Draw_DrawFormattedString(10, SCREEN_BOT_HEIGHT - 20, COLOR_ORANGE, "Based on Luma3DS %s", versionString);
     } else {
-        Draw_DrawString(10, SCREEN_BOT_HEIGHT - 30, COLOR_ORANGE, "Nexus3DS");
+        Draw_DrawFormattedString(10, SCREEN_BOT_HEIGHT - 30, COLOR_ORANGE, "Nexus3DS %s", nexusVersionString);
         Draw_DrawFormattedString(10, SCREEN_BOT_HEIGHT - 20, COLOR_ORANGE, "Based on Luma3DS %s-%08lx", versionString, commitHash);
     }
 
