@@ -146,8 +146,8 @@ void N3DSMenu_TestBarrierPositions(void)
     {
         Draw_Lock();
 
-        Draw_DrawString(10, 10, COLOR_TITLE, "New 3DS menu");
-        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Use left/right to adjust the barrier's position.\n\n");
+        Draw_DrawMenuFrame("New 3DS menu");
+        u32 posY = Draw_DrawString(10, 40, COLOR_WHITE, "Use left/right to adjust the barrier's position.\n\n");
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Each position corresponds to 5.2mm horizontal eye\nmovement (assuming ideal viewing conditions).\n\n");
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Once you figure out the ideal central position, you\ncan then use it in the calibration submenu.\n\n");
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Auto-barrier adjustment behavior is restored on\nexit.\n\n");
@@ -216,8 +216,8 @@ void N3DSMenu_Ss3dCalibration(void)
 
         Draw_Lock();
 
-        Draw_DrawString(10, 10, COLOR_TITLE, "New 3DS menu");
-        u32 posY = 30;
+        Draw_DrawMenuFrame("New 3DS menu");
+        u32 posY = 40;
 
         if (trackingDisabled)
             posY = Draw_DrawString(10, posY, COLOR_WHITE, "SS3D disabled or camera in use.\nPress B to exit this menu.\n");
