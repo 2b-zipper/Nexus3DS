@@ -985,10 +985,10 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                "( ) Redirect app. syscore threads to core2",
                                                "( ) Show NAND or user string in System Settings",
                                                "( ) Show GBA boot screen in patched AGB_FIRM",
-                                               "( ) Enable development UNITINFO",
-                                               "( ) Disable arm11 exception handlers",
-                                               "( ) Enable Rosalina on SAFE_FIRM",
-                                               "( ) Enable instant reboot + disable Errdisp",
+                                               "( ) Enable development UNITINFO [CAREFUL!]",
+                                               "( ) Disable arm11 exception handlers [CAREFUL!]",
+                                               "( ) Enable Rosalina on SAFE_FIRM [CAREFUL!]",
+                                               "( ) Enable instant reboot + disable Errdisp [!]",
 
                                                // Should always be the last 2 entries
                                                "\nBoot chainloader",
@@ -1090,9 +1090,11 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
                                                  "Make the console be always detected\n"
                                                  "as a development unit, and conversely.\n"
-                                                 "(which breaks online features, amiibo\n"
-                                                 "and retail CIAs, but allows installing\n"
-                                                 "and booting some developer software).\n\n"
+                                                 "This is meant to install and boot\n"
+                                                 "some developer software.\n\n"
+                                                 "!YOU WILL GET ISSUES such as online\n"
+                                                 "features and Amiibos not working and\n"
+                                                 "retail CIAs installation may fail.\n\n"
                                                  "Only select this if you know what you\n"
                                                  "are doing!",
 
@@ -1168,7 +1170,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         { .visible = true }, // show GBA boot screen
         { .visible = true }, // Enable dev UNITINFO
         { .visible = false }, // disable arm11 exception handlers
-        { .visible = ISN3DS }, // Enable Rosalina on SAFE_FIRM
+        { .visible = false }, // Enable Rosalina on SAFE_FIRM
         { .visible = false }, // Enable instant reboot + disable Errdisp
         // Should always be visible
         { .visible = true }, // Boot chainloader
