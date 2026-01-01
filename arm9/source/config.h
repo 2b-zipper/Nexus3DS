@@ -76,6 +76,21 @@ typedef enum ConfigurationStatus
     CREATE_CONFIGURATION
 } ConfigurationStatus;
 
+struct multiOption {
+    u32 posXs[4];
+    u32 posY;
+    u32 enabled;
+    bool visible;
+    u32 page;
+};
+
+struct singleOption {
+    u32 posY;
+    bool enabled;
+    bool visible;
+    u32 page;
+};
+
 extern CfgData configData;
 
 bool readConfig(void);
