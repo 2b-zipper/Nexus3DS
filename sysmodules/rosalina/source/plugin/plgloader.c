@@ -23,9 +23,6 @@ extern u32 g_blockMenuOpen;
 extern u64 g_titleId;
 extern u32 g_pid;
 
-void        IR__Patch(void);
-void        IR__Unpatch(void);
-
 bool PluginWatcher_isEnabled = false;
 bool PluginWatcher_isRunning = false;
 bool PluginConverter_UseCache = false;
@@ -103,7 +100,7 @@ void        PluginLoader__UpdateMenu(void)
 static ControlApplicationMemoryModeOverrideConfig g_memorymodeoverridebackup = { 0 };
 Result  PluginLoader__SetMode3AppMode(bool enable)
 {
-	Handle loaderHandle;
+    Handle loaderHandle;
     Result res = srvGetServiceHandle(&loaderHandle, "Loader");
 
     if (R_FAILED(res)) return res;
@@ -112,7 +109,7 @@ Result  PluginLoader__SetMode3AppMode(bool enable)
 
     if (enable) {
         ControlApplicationMemoryModeOverrideConfig* mode = (ControlApplicationMemoryModeOverrideConfig*)&cmdbuf[1];
-        
+
         memset(mode, 0, sizeof(ControlApplicationMemoryModeOverrideConfig));
         mode->query = true;
         cmdbuf[0] = IPC_MakeHeader(0x101, 1, 0); // ControlApplicationMemoryModeOverride
@@ -137,15 +134,11 @@ Result  PluginLoader__SetMode3AppMode(bool enable)
             res = cmdbuf[1];
         }
     }
-    
-	svcCloseHandle(loaderHandle);
+
+    svcCloseHandle(loaderHandle);
     return res;
 }
 static void j_PluginLoader__SetMode3AppMode(void* arg) {(void)arg; PluginLoader__SetMode3AppMode(false);}
-
-void CheckMemory(void);
-
-void    PLG__NotifyEvent(PLG_Event event, bool signal);
 
 static bool PluginWatcher_AskSkip(const char *message)
 {
@@ -216,8 +209,6 @@ void     PluginLoader__HandleCommands(void *_ctx)
                     }
                     REG32(0x10202204) = 0;
                 }
-                //if (!ctx->userLoadParameters.noIRPatch)
-                //    IR__Patch();
                 PLG__SetConfigMemoryStatus(PLG_CFG_RUNNING);
             }
             else
@@ -280,14 +271,14 @@ void     PluginLoader__HandleCommands(void *_ctx)
             params->pluginMemoryStrategy = (cmdbuf[1] >> 8) & 0xFF;
             params->persistent = (cmdbuf[1] >> 16) & 0x1;
             params->lowTitleId = cmdbuf[2];
-            
+
             strncpy(params->path, (const char *)cmdbuf[4], 255);
             memcpy(params->config, (void *)cmdbuf[6], 32 * sizeof(u32));
 
             if (params->persistent)
             {
                 IFile file;
-                if (R_SUCCEEDED(IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, "/luma/plugins/user_param.bin"), 
+                if (R_SUCCEEDED(IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, "/luma/plugins/user_param.bin"),
                                            FS_OPEN_CREATE | FS_OPEN_READ | FS_OPEN_WRITE))) {
                     u64 tempWritten;
                     u32 magic = PERS_USER_FILE_MAGIC;
@@ -416,9 +407,9 @@ void     PluginLoader__HandleCommands(void *_ctx)
                 error(cmdbuf, 0xD9001830);
                 break;
             }
-            
+
             g_blockMenuOpen = cmdbuf[1];
-            
+
             cmdbuf[0] = IPC_MakeHeader(11, 1, 0);
             cmdbuf[1] = 0;
             break;
@@ -482,7 +473,7 @@ void     PluginLoader__HandleCommands(void *_ctx)
                 Reset_3gx_LoadParams();
                 break;
             }
-            
+
             ctx->isExeLoadFunctionset = true;
 
             svcInvalidateEntireInstructionCache(); // Could use the range one
@@ -670,7 +661,7 @@ static void WaitForProcessTerminated(void *arg)
 
     // Wait until all threads of the process have finished (svcWaitSynchronization == 0) or 2.5 seconds have passed.
     for (u32 i = 0; svcWaitSynchronization(ctx->target, 0) != 0 && i < 50; i++) svcSleepThread(50000000); // 50ms
-    
+
     // Unmap plugin's memory before closing the process
     if (!ctx->pluginIsSwapped) {
         MemoryBlock__UnmountFromProcess();
@@ -690,8 +681,6 @@ static void WaitForProcessTerminated(void *arg)
     ctx->isMemPrivate = false;
     g_blockMenuOpen = 0;
     MemoryBlock__ResetSwapSettings();
-    //if (!ctx->userLoadParameters.noIRPatch)
-    //    IR__Unpatch();
 }
 
 void    PluginLoader__HandleKernelEvent(u32 notifId)
@@ -772,12 +761,11 @@ void    PluginLoader__HandleKernelEvent(u32 notifId)
                     PLG__NotifyEvent(PLG_HOME_ENTER, false);
                     // Wait for plugin reply
                     PLG__WaitForReply();
-                }                
+                }
                 PLG__SetConfigMemoryStatus(PLG_CFG_INHOME);
             }
             ctx->pluginIsHome = !ctx->pluginIsHome;
         }
-        
     }
     srvPublishToSubscriber(0x1002, 0);
 }
