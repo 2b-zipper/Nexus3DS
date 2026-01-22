@@ -57,6 +57,7 @@ u32 patchArm9ExceptionHandlersInstall(u8 *pos, u32 size);
 u32 patchSvcBreak9(u8 *pos, u32 size, u32 kernel9Address);
 u32 patchKernel9Panic(u8 *pos, u32 size);
 u32 patchP9AccessChecks(u8 *pos, u32 size);
+u32 patchKernel9Fs(u8 *pos, u32 size);
 u32 patchUnitInfoValueSet(u8 *pos, u32 size);
 u32 patchP9AMTicketWrapperZeroKeyIV(u8 *pos, u32 size, u32 firmVersion);
 u32 patchLgySignatureChecks(u8 *pos, u32 size);

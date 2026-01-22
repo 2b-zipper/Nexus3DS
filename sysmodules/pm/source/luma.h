@@ -35,6 +35,7 @@ enum singleOptions
     DISABLEARM11EXCHANDLERS,
     ENABLESAFEFIRMROSALINA,
     INSTANTREBOOTNOERRDISP,
+    ENABLESDBOOTTIMEPATCH,
 };
 
 extern u32 config, multiConfig, bootConfig;

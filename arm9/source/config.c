@@ -69,6 +69,7 @@ static const char *singleOptionIniNamesBoot[] = {
     "disable_arm11_exception_handlers",
     "enable_safe_firm_rosalina",
     "instant_reboot_no_errdisp",
+    "enable_sd_boot_time_patch",
 };
 
 static const char *keyNames[] = {
@@ -751,6 +752,7 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)CONFIG(PATCHVERSTRING), (int)CONFIG(SHOWGBABOOT),
         (int)CONFIG(PATCHUNITINFO), (int)CONFIG(DISABLEARM11EXCHANDLERS),
         (int)CONFIG(ENABLESAFEFIRMROSALINA), (int)CONFIG(INSTANTREBOOTNOERRDISP),
+        (int)CONFIG(ENABLESDBOOTTIMEPATCH),
 
         1 + (int)MULTICONFIG(DEFAULTEMU), 4 - (int)MULTICONFIG(BRIGHTNESS),
         splashPosStr, splashDurationPresetStr, (unsigned int)cfg->splashDurationMsec,
@@ -1039,6 +1041,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                "( ) Disable arm11 exception handlers",
                                                "( ) Enable Rosalina on SAFE_FIRM",
                                                "( ) Enable instant reboot + disable Errdisp",
+                                               "( ) Enable SD card boot time patch",
 
                                                // Should always be the last 2 entries
                                                "\nBoot chainloader",
@@ -1174,6 +1177,13 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "Only select this if you know what you\n"
                                                  "are doing!",
 
+                                                 "Enable SD card boot time patch.\n"
+                                                 "This patch will speed up boot by NOT\n"
+                                                 "calculating free space on SD card.\n"
+                                                 "Only enable this option if you know\n"
+                                                 "what you are doing!!!!!\n"
+                                                 "As well as at your own risk!!!!!",
+
                                                 // Should always be the last 2 entries
                                                 "Boot to the Nexus3DS chainloader menu.",
 
@@ -1213,6 +1223,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         { .visible = true, .page = 1 }, // disable arm11 exception handlers
         { .visible = true, .page = 1 }, // Enable Rosalina on SAFE_FIRM
         { .visible = true, .page = 1 }, // Enable instant reboot + disable Errdisp
+        { .visible = true, .page = 1 }, // Enable SD card boot time patch 
         // Should always be visible
         { .visible = true, .page = 0 }, // Boot chainloader
         { .visible = true, .page = 0 }, // Save and exit
