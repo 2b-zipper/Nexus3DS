@@ -36,7 +36,7 @@
 
 #define CONFIG_FILE         "nexusconfig.ini"
 #define CONFIG_VERSIONMAJOR 3
-#define CONFIG_VERSIONMINOR 14
+#define CONFIG_VERSIONMINOR 15
 
 #define BOOTCFG_NAND         BOOTCONFIG(0, 1)
 #define BOOTCFG_EMUINDEX     BOOTCONFIG(1, 3)

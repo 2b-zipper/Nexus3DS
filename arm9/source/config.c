@@ -1179,10 +1179,13 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
                                                  "Enable SD card boot time patch.\n"
                                                  "This patch will speed up boot by NOT\n"
-                                                 "calculating free space on SD card.\n"
+                                                 "calculating free space on SD card.\n\n"
+                                                 "!WARNING! Using this may corrupt your\n"
+                                                 "data if the sd is almost full!\n\n"
+                                                 "Use this at your own risk! You've been\n"
+                                                 "warned.\n"
                                                  "Only enable this option if you know\n"
-                                                 "what you are doing!!!!!\n"
-                                                 "As well as at your own risk!!!!!",
+                                                 "what you are doing!\n",
 
                                                 // Should always be the last 2 entries
                                                 "Boot to the Nexus3DS chainloader menu.",

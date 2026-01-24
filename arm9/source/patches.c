@@ -632,8 +632,7 @@ u32 patchKernel9Fs(u8 *pos, u32 size)
     static const u8 pattern[] = {  0x00, 0xF0, 0x82, 0xFA, 0x00, 0x28, 0xAC, 0xD0, };
     u16* off = (u16 *)memsearch(pos, pattern, size, sizeof(pattern));
 
-    //Apply patch if configured so.
-    if(CONFIG(ENABLESDBOOTTIMEPATCH) && off)
+    if(off)
     {
         off[0] = 0x3038;//adds r0, r0, 0x38
         off[1] = 0x6801;//ldr r1, [r0]
