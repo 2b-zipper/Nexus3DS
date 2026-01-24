@@ -144,6 +144,12 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                 case 0x185:
                     *out = cfwInfo.homeButtonCombo;
                     break;
+                case 0x186:
+                    *out = cfwInfo.screenToggleTarget;
+                    break;
+                case 0x187:
+                    *out = cfwInfo.screenToggleCombo;
+                    break;
                 case 0x200: // isRelease
                     *out = cfwInfo.flags & 1;
                     break;

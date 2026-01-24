@@ -525,20 +525,15 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 4) : cfg->extraConfigFlags & ~(1 << 4);
             return 1;
-        } else if (strcmp(name, "toggle_lcd_combo") == 0) {
+        } else if (strcmp(name, "temperature_unit_fahrenheit") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 5) : cfg->extraConfigFlags & ~(1 << 5);
             return 1;
-        } else if (strcmp(name, "temperature_unit_fahrenheit") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 6) : cfg->extraConfigFlags & ~(1 << 6);
-            return 1;
         } else if (strcmp(name, "use_12_hour_clock") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 7) : cfg->extraConfigFlags & ~(1 << 7);
+            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 6) : cfg->extraConfigFlags & ~(1 << 6);
             return 1;
         } else {
             CHECK_PARSE_OPTION(-1);
@@ -655,6 +650,16 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(parseKeyComboOption(&opt, value));
             cfg->homeButtonCombo = opt;
             return 1;
+        } else if (strcmp(name, "toggle_screen_target") == 0) {
+            s64 opt;
+            CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 0, 3));
+            cfg->screenToggleTarget = (u8)opt;
+            return 1;
+        } else if (strcmp(name, "toggle_screen_combo") == 0) {
+            u32 opt;
+            CHECK_PARSE_OPTION(parseKeyComboOption(&opt, value));
+            cfg->screenToggleCombo = opt;
+            return 1;
         } else {
             CHECK_PARSE_OPTION(-1);
         }
@@ -671,6 +676,7 @@ static size_t saveLumaIniConfigToStr(char *out)
     char lumaRevSuffixStr[16];
     char rosalinaMenuComboStr[128];
     char homeButtonComboStr[128];
+    char screenToggleComboStr[128];
 
     const char *splashPosStr;
     const char *splashDurationPresetStr;
@@ -724,6 +730,7 @@ static size_t saveLumaIniConfigToStr(char *out)
 
     menuComboToString(rosalinaMenuComboStr, cfg->rosalinaMenuCombo);
     menuComboToString(homeButtonComboStr, cfg->homeButtonCombo);
+    menuComboToString(screenToggleComboStr, cfg->screenToggleCombo);
 
     static const int pinOptionToDigits[] = { 0, 4, 6, 8 };
     int pinNumDigits = pinOptionToDigits[MULTICONFIG(PIN)];
@@ -771,7 +778,6 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)((cfg->extraConfigFlags >> 4) & 1),
         (int)((cfg->extraConfigFlags >> 5) & 1),
         (int)((cfg->extraConfigFlags >> 6) & 1),
-        (int)((cfg->extraConfigFlags >> 7) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         (int)cfg->topScreenFilter.colorCurveCorrection, (int)cfg->bottomScreenFilter.colorCurveCorrection,
@@ -786,7 +792,9 @@ static size_t saveLumaIniConfigToStr(char *out)
         cfg->volumeSliderOverride,
         (int)((cfg->homeButtonSimFlags >> 0) & 1),
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
-        homeButtonComboStr
+        homeButtonComboStr,
+        (unsigned int) cfg->screenToggleTarget,
+        screenToggleComboStr
     );
 
     return n < 0 ? 0 : (size_t)n;
@@ -892,7 +900,7 @@ bool readConfig(void)
         configData.splashDurationMsec = 7000;
         configData.volumeSliderOverride = -1;
         configData.hbldr3dsxTitleId = HBLDR_DEFAULT_3DSX_TID;
-        configData.rosalinaMenuCombo = 1u << 9 | 1u << 7 | 1u << 2; // L+Start+Select
+        configData.rosalinaMenuCombo = 1u << 9 | 1u << 7 | 1u << 2; // L+Down+Select
         configData.topScreenFilter.cct = 6500; // default temp, no-op
         configData.topScreenFilter.gammaEnc = 1 * FLOAT_CONV_MULT; // 1.0f
         configData.topScreenFilter.contrastEnc = 1 * FLOAT_CONV_MULT; // 1.0f
@@ -903,6 +911,8 @@ bool readConfig(void)
         configData.extraConfigFlags |= 1 << 3; // screenshot_date_folders  
         configData.extraConfigFlags |= 1 << 4; // screenshot_combined
         configData.homeButtonCombo = 1u << 2 | 1u << 8; // Select+R
+        configData.screenToggleTarget = 0; // None - disabled
+        configData.screenToggleCombo = 1u << 3 | 1u << 2; // Start+Select
         ret = false;
     }
     else

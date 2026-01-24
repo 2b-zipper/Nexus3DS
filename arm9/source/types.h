@@ -92,6 +92,8 @@ typedef struct CfgData {
     u32 extraConfigFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;
+    u8 screenToggleTarget;
+    u32 screenToggleCombo;
 } CfgData;
 
 typedef struct

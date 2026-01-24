@@ -38,6 +38,7 @@
 #include "menus/cheats.h"
 #include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
+#include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
 #include "menus/plugin_options.h"
 #include "menus/sysconfig.h"
@@ -412,12 +413,6 @@ void menuThreadMain(void)
             menuLeave();
         }
 
-        // HOME button simulation combo
-        if(enableHomeButtonCombo && homeButtonCombo != 0 && ((kHeld & homeButtonCombo) == homeButtonCombo))
-        {
-            srvPublishToSubscriber(0x204, 0);
-        }
-
         // instant reboot combo key
         if(instantReboot & ((scanHeldKeys() & (KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START)) == (KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START)))
         {
@@ -425,33 +420,47 @@ void menuThreadMain(void)
             __builtin_unreachable();
         }
 
-        // toggle screen combo
-        if(configExtra.toggleLcdCombo && ((scanHeldKeys() & (KEY_SELECT | KEY_START)) == (KEY_SELECT | KEY_START)))
+        // HOME button simulation combo
+        if(enableHomeButtonCombo && homeButtonCombo != 0 && ((kHeld & homeButtonCombo) == homeButtonCombo))
         {
-            u8 result, toggleLcdStatus;
-            char sysInfo[10] = { 0 };
+            srvPublishToSubscriber(0x204, 0);
+        }
+
+        // screen toggle
+        if (screenToggleTarget != 0 && screenToggleCombo != 0 && ((kHeld & screenToggleCombo) == screenToggleCombo))
+        {
+            u8 result;
+            char sysInfo[10] = {0};
+
             mcuHwcInit();
-            MCUHWC_ReadRegister(0x0F, &result, 1); // https://www.3dbrew.org/wiki/I2C_Registers#Device_3
-            MCUHWC_ReadRegister(0x7F, &sysInfo, 10); // System info, contains model in byte 10
+            MCUHWC_ReadRegister(0x0F, &result, 1);
+            MCUHWC_ReadRegister(0x7F, sysInfo, 10);
             mcuHwcExit();
 
             if (sysInfo[9] != 3) // Check the model, o2ds (3) don't have a top screen
             {
-                toggleLcdStatus = (result >> 5) & 1; // right shift result to bit 5 ("Bottom screen backlight on") and perform bitwise AND with 1
-
                 gspLcdInit();
-                if(toggleLcdStatus)
+
+                if (screenToggleTarget == 1 || screenToggleTarget == 3)
                 {
-                    GSPLCD_PowerOffBacklight(BIT(GSP_SCREEN_BOTTOM));
+                    if ((result >> 5) & 1) // bottom screen state
+                        GSPLCD_PowerOffBacklight(BIT(GSP_SCREEN_BOTTOM));
+                    else
+                        GSPLCD_PowerOnBacklight(BIT(GSP_SCREEN_BOTTOM));
                 }
-                else
+
+                if (screenToggleTarget == 2 || screenToggleTarget == 3)
                 {
-                    GSPLCD_PowerOnBacklight(BIT(GSP_SCREEN_BOTTOM));
+                    if ((result >> 6) & 1) // top screen state
+                        GSPLCD_PowerOffBacklight(BIT(GSP_SCREEN_TOP));
+                    else
+                        GSPLCD_PowerOnBacklight(BIT(GSP_SCREEN_TOP));
                 }
+
                 gspLcdExit();
-                while (!(waitInput() & (KEY_SELECT | KEY_START)));   
             }
 
+            while (!(waitInput() & screenToggleCombo));
         }
 
         if (saveSettingsRequest) {

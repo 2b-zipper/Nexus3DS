@@ -35,6 +35,7 @@
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
+#include "menus/screen_toggle.h"
 #include "plugin/plgloader.h"
 
 extern bool PluginWatcher_isEnabled;
@@ -64,6 +65,8 @@ typedef struct CfgData {
     u32 extraConfigFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;
+    u8 screenToggleTarget;
+    u32 screenToggleCombo;
 } CfgData;
 
 bool saveSettingsRequest = false;
@@ -103,6 +106,7 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
     char lumaRevSuffixStr[16];
     char rosalinaMenuComboStr[128];
     char homeButtonComboStr[128];
+    char screenToggleComboStr[128];
 
     const char *splashPosStr;
     const char *splashDurationPresetStr;
@@ -166,6 +170,7 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
 
     LumaConfig_ConvertComboToString(rosalinaMenuComboStr, cfg->rosalinaMenuCombo);
     LumaConfig_ConvertComboToString(homeButtonComboStr, cfg->homeButtonCombo);
+    LumaConfig_ConvertComboToString(screenToggleComboStr, cfg->screenToggleCombo);
 
     static const int pinOptionToDigits[] = { 0, 4, 6, 8 };
     int pinNumDigits = pinOptionToDigits[MULTICONFIG(PIN)];
@@ -213,7 +218,6 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         (int)((cfg->extraConfigFlags >> 4) & 1),
         (int)((cfg->extraConfigFlags >> 5) & 1),
         (int)((cfg->extraConfigFlags >> 6) & 1),
-        (int)((cfg->extraConfigFlags >> 7) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         (int)cfg->topScreenFilter.colorCurveCorrection, (int)cfg->bottomScreenFilter.colorCurveCorrection,
@@ -228,7 +232,9 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         cfg->volumeSliderOverride,
         (int)((cfg->homeButtonSimFlags >> 0) & 1),
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
-        homeButtonComboStr
+        homeButtonComboStr,
+        (unsigned int) cfg->screenToggleTarget,
+        screenToggleComboStr
     );
 
     return n < 0 ? 0 : (size_t)n;
@@ -299,6 +305,8 @@ Result LumaConfig_SaveSettings(void)
     if (hideReturnToHomeMenu) configData.homeButtonSimFlags |= 1 << 0;
     if (enableHomeButtonCombo) configData.homeButtonSimFlags |= 1 << 1;
     configData.homeButtonCombo = homeButtonCombo;
+    configData.screenToggleTarget = screenToggleTarget;
+    configData.screenToggleCombo = screenToggleCombo;
 
     configData.extraConfigFlags = 0;
     if (configExtra.suppressLeds) configData.extraConfigFlags |= 1 << 0;
@@ -306,9 +314,8 @@ Result LumaConfig_SaveSettings(void)
     if (configExtra.cutSleepWifi) configData.extraConfigFlags |= 1 << 2;
     if (configExtra.screenshotDateFolders) configData.extraConfigFlags |= 1 << 3;
     if (configExtra.screenshotCombined) configData.extraConfigFlags |= 1 << 4;
-    if (configExtra.toggleLcdCombo) configData.extraConfigFlags |= 1 << 5;
-    if (configExtra.temperatureUnit) configData.extraConfigFlags |= 1 << 6;
-    if (configExtra.use12HourClock) configData.extraConfigFlags |= 1 << 7;
+    if (configExtra.temperatureUnit) configData.extraConfigFlags |= 1 << 5;
+    if (configExtra.use12HourClock) configData.extraConfigFlags |= 1 << 6;
 
     size_t n = LumaConfig_SaveLumaIniConfigToStr(inibuf, &configData);
     FS_ArchiveID archiveId = isSdMode ? ARCHIVE_SDMC : ARCHIVE_NAND_RW;

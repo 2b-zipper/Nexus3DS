@@ -40,6 +40,7 @@
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
+#include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
 #include "input_redirection.h"
 #include "minisoc.h"
@@ -328,6 +329,7 @@ int main(void)
     SysConfigMenu_LoadConfig();
     ConfigExtra_ReadConfigExtra();
     HomeButtonSimMenu_LoadConfig();
+    ScreenToggleMenu_LoadConfig();
 
     MyThread *menuThread = menuCreateThread();
     MyThread *taskRunnerThread = taskRunnerCreateThread();
