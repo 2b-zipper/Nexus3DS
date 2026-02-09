@@ -352,6 +352,16 @@ bool menuCheckN3ds(void)
     return isN3DS;
 }
 
+bool menuCheckNoO2ds(void) {
+    char sysInfo[10] = {0};
+
+    mcuHwcInit();
+    MCUHWC_ReadRegister(0x7F, sysInfo, 10);
+    mcuHwcExit();
+
+    return (sysInfo[9] != 3);
+}
+
 u32 menuCountItems(const Menu *menu)
 {
     u32 n;

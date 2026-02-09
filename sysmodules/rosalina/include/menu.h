@@ -90,6 +90,7 @@ u32 waitComboWithTimeout(s32 msec);
 u32 waitCombo(void);
 
 bool menuCheckN3ds(void);
+bool menuCheckNoO2ds(void);
 u32 menuCountItems(const Menu *menu);
 
 u32 Get_TitleID(u64* titleId);
