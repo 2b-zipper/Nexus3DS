@@ -28,6 +28,7 @@
 #include "luma_config.h"
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
+#include "menus/screen_toggle.h"
 #include "memory.h"
 #include "draw.h"
 #include "fmt.h"
@@ -41,11 +42,12 @@ Menu sysconfigMenu = {
     {
         { "Control volume", METHOD, .method=&SysConfigMenu_AdjustVolume},
         { "Control Wireless connection", METHOD, .method = &SysConfigMenu_ControlWifi },
+        { "Change screen brightness", METHOD, .method = &SysConfigMenu_ChangeScreenBrightness },
         { "Toggle LEDs", METHOD, .method = &SysConfigMenu_ToggleLEDs },
         { "Toggle Wireless", METHOD, .method = &SysConfigMenu_ToggleWireless },
         { "Toggle Power Button", METHOD, .method=&SysConfigMenu_TogglePowerButton },
         { "Toggle power to card slot", METHOD, .method=&SysConfigMenu_ToggleCardIfPower},
-        { "Change screen brightness", METHOD, .method = &SysConfigMenu_ChangeScreenBrightness },
+        { "Toggle Screen options...", MENU, .menu=&screenToggleMenu, .visibility=&menuCheckNoO2ds},
         { "Extra Config...", METHOD, .method = &ConfigExtra_DrawDetailedMenu },
         {},
     }

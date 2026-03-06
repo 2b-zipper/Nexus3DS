@@ -159,6 +159,8 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
             u32 extraConfigFlags;
             u32 homeButtonSimFlags;
             u32 homeButtonCombo;
+            u8 screenToggleTarget;
+            u32 screenToggleCombo;
 
             u16 launchedPath[80+1];
         } info;
@@ -245,6 +247,8 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
     info->extraConfigFlags = configData.extraConfigFlags;
     info->homeButtonSimFlags = configData.homeButtonSimFlags;
     info->homeButtonCombo = configData.homeButtonCombo;
+    info->screenToggleTarget = configData.screenToggleTarget;
+    info->screenToggleCombo = configData.screenToggleCombo;
     info->versionMajor = LUMA_VERSION_MAJOR;
     info->versionMinor = LUMA_VERSION_MINOR;
     info->versionBuild = LUMA_VERSION_BUILD;
@@ -623,6 +627,26 @@ u32 patchP9AccessChecks(u8 *pos, u32 size)
     u16 *off = (u16 *)(temp - 3);
     off[0] = 0x2001; //mov r0, #1
     off[1] = 0x4770; //bx lr
+
+    return 0;
+}
+
+u32 patchKernel9Fs(u8 *pos, u32 size)
+{
+    static const u8 pattern[] = {  0x00, 0xF0, 0x82, 0xFA, 0x00, 0x28, 0xAC, 0xD0, };
+    u16* off = (u16 *)memsearch(pos, pattern, size, sizeof(pattern));
+
+    if(off)
+    {
+        off[0] = 0x3038;//adds r0, r0, 0x38
+        off[1] = 0x6801;//ldr r1, [r0]
+        off[2] = 0x6701;//str r1, [r0, #0x70]
+        off[3] = 0x0000;//movs r0, r0 (aka "nop")
+    }
+
+    //Allow booting without this patch for now.
+    // if(!off)
+    //     return 1;
 
     return 0;
 }

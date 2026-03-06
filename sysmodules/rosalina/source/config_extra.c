@@ -20,11 +20,6 @@ static inline const char* ConfigExtra_GetCheckboxDisplay(bool value)
     return value ? "(x)" : "( )";
 }
 
-static bool CheckNotO2DS(void)
-{
-    return mcuInfoTableRead && mcuInfoTable[9] != 3;
-}
-
 void ConfigExtra_DrawDetailedMenu(void)
 {
     static const ConfigMenuEntry configMenuEntries[] = {
@@ -33,7 +28,6 @@ void ConfigExtra_DrawDetailedMenu(void)
         {"Cut 3DS Wifi in sleep mode", &configExtra.cutSleepWifi, NULL},
         {"Save screenshots in date folders", &configExtra.screenshotDateFolders, NULL},
         {"Combine top/bottom screenshots", &configExtra.screenshotCombined, NULL},
-        {"Toggle bottom LCD backlight (start+select)", &configExtra.toggleLcdCombo, &CheckNotO2DS},
         {"Use Fahrenheit for temperature display", &configExtra.temperatureUnit, NULL},
         {"Use 12-hour clock format in Rosalina menu", &configExtra.use12HourClock, NULL}
     };
@@ -111,16 +105,14 @@ void ConfigExtra_ReadConfigExtra(void)
         configExtra.cutSleepWifi = (extraConfigFlags >> 2) & 1;
         configExtra.screenshotDateFolders = (extraConfigFlags >> 3) & 1;
         configExtra.screenshotCombined = (extraConfigFlags >> 4) & 1;
-        configExtra.toggleLcdCombo = (extraConfigFlags >> 5) & 1;
-        configExtra.temperatureUnit = (extraConfigFlags >> 6) & 1;
-        configExtra.use12HourClock = (extraConfigFlags >> 7) & 1;
+        configExtra.temperatureUnit = (extraConfigFlags >> 5) & 1;
+        configExtra.use12HourClock = (extraConfigFlags >> 6) & 1;
     } else {
         configExtra.suppressLeds = false;
         configExtra.cutSlotPower = false;
         configExtra.cutSleepWifi = false;
         configExtra.screenshotDateFolders = true;
         configExtra.screenshotCombined = true;
-        configExtra.toggleLcdCombo = false;
         configExtra.temperatureUnit = false;
         configExtra.use12HourClock = false;
     }

@@ -36,7 +36,7 @@
 
 #define CONFIG_FILE         "nexusconfig.ini"
 #define CONFIG_VERSIONMAJOR 3
-#define CONFIG_VERSIONMINOR 14
+#define CONFIG_VERSIONMINOR 16
 
 #define BOOTCFG_NAND         BOOTCONFIG(0, 1)
 #define BOOTCFG_EMUINDEX     BOOTCONFIG(1, 3)
@@ -67,6 +67,7 @@ enum singleOptions
     DISABLEARM11EXCHANDLERS,
     ENABLESAFEFIRMROSALINA,
     INSTANTREBOOTNOERRDISP,
+    ENABLESDBOOTTIMEPATCH,
 };
 
 typedef enum ConfigurationStatus
@@ -75,6 +76,21 @@ typedef enum ConfigurationStatus
     MODIFY_CONFIGURATION,
     CREATE_CONFIGURATION
 } ConfigurationStatus;
+
+struct multiOption {
+    u32 posXs[4];
+    u32 posY;
+    u32 enabled;
+    bool visible;
+    u32 page;
+};
+
+struct singleOption {
+    u32 posY;
+    bool enabled;
+    bool visible;
+    u32 page;
+};
 
 extern CfgData configData;
 
