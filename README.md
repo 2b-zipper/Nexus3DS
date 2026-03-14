@@ -145,6 +145,8 @@ The build produces a single file: `boot.firm`. Copy it to the root of your SD ca
 * **[@2b-zipper](https://github.com/2b-zipper)**
 * **[@cooolgamer](https://github.com/cooolgamer)**
 * **[@Alexyo21](https://github.com/Alexyo21)**
+*
+**[@Core-2-Extreme](https://github.com/Core-2-Extreme)**
 
 *See also: [People who made this fork possible](#credits)*
 
