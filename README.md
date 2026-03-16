@@ -78,6 +78,8 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Day/Night mode allowing to change the brightness, toggle LEDs, etc. At a desired time - *Original by [cooolgamer](https://github.com/cooolgamorg/Starlight3DS/commit/d0eb60bc21f464e7269dc7b93416e89423232de9) based on [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/54cdedce2a55b8deae730d0af077ee2907f0444b)*
 * Random little messages in the arm11/9 exception handler :)
 * Screenshots include title ID in filename
+* Customizable LCD backlight toggle shortcut (Does not work on old 2DS)
+* Experimental faster boot time for big sd cards (Expert option, may corrupt your sd card if full)
 
 **Extra Configuration Menu Options:**
 * Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
@@ -85,9 +87,11 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * Save screenshots in date folders
 * Combine top/bottom screenshots (saved with _cmb suffix)
-* Toggle bottom LCD backlight with Start+Select
 * Use Fahrenheit for temperature display (defaults to Celsius)
 * Use 12-hour clock format in Rosalina menu (defaults to 24-hour)
+
+**Expert Zone:**
+- To toggle hidden options quickly, you can use the Konami code on the luma configuration menu. WARNING: These are advanced options not meant to be used by regular users, use carefully!
 
 For detailed technical information, please refer to the [official Luma3DS documentation](https://github.com/LumaTeam/Luma3DS/wiki) and [README](https://github.com/LumaTeam/Luma3DS/blob/master/README.md).
 
