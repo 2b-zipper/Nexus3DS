@@ -1,0 +1,280 @@
+#-------------------------------------------------------------------------------
+# elftools: dwarf/lineprogram.py
+#
+# DWARF line number program
+#
+# Eli Bendersky (eliben@gmail.com)
+# This code is in the public domain
+#-------------------------------------------------------------------------------
+from __future__ import annotations
+
+import os
+import copy
+from functools import cached_property
+from typing import IO, TYPE_CHECKING, Any, NamedTuple
+
+from ..common.utils import struct_parse, dwarf_assert
+from .constants import DW_LNE, DW_LNS
+
+if TYPE_CHECKING:
+    from ..construct.lib.container import Container
+    from .structs import DWARFStructs
+
+
+# LineProgramEntry - an entry in the line program.
+# A line program is a sequence of encoded entries. Some of these entries add a
+# new LineState (mapping between line and address), and some don't.
+#
+# command:
+#   The command/opcode - always numeric. For standard commands - it's the opcode
+#   that can be matched with one of the DW_LNS constants. For extended commands
+#   it's the extended opcode that can be matched with one of the DW_LNE
+#   constants. For special commands, it's the opcode itself.
+#
+# args:
+#   A list of decoded arguments of the command.
+#
+# is_extended:
+#   Since extended commands are encoded by a zero followed by an extended
+#   opcode, and these extended opcodes overlap with other opcodes, this
+#   flag is needed to mark that the command has an extended opcode.
+#
+# state:
+#   For commands that add a new state, it's the relevant LineState object.
+#   For commands that don't add a new state, it's None.
+#
+class LineProgramEntry(NamedTuple):
+    command: int
+    is_extended: bool
+    args: list[int]
+    state: LineState | None
+
+
+class LineState:
+    """ Represents a line program state (or a "row" in the matrix
+        describing debug location information for addresses).
+        The instance variables of this class are the "state machine registers"
+        described in section 6.2.2 of DWARFv3
+    """
+    def __init__(self, default_is_stmt: int) -> None:
+        self.address = 0
+        self.file = 1
+        self.line = 1
+        self.column = 0
+        self.op_index = 0
+        self.is_stmt = default_is_stmt
+        self.basic_block = False
+        self.end_sequence = False
+        self.prologue_end = False
+        self.epilogue_begin = False
+        self.isa = 0
+        self.discriminator = 0
+
+    def __repr__(self) -> str:
+        return '\n'.join((
+            '<LineState %x:' % id(self),
+            '  address = 0x%x' % self.address,
+            *(
+                '  %s = %s' % (attr, getattr(self, attr))
+                for attr in ('file', 'line', 'column', 'is_stmt', 'basic_block',
+                    'end_sequence', 'prologue_end', 'epilogue_begin', 'isa',
+                    'discriminator')
+            ),
+            '>',
+        ))
+
+
+class LineProgram:
+    """ Builds a "line table", which is essentially the matrix described
+        in section 6.2 of DWARFv3. It's a list of LineState objects,
+        sorted by increasing address, so it can be used to obtain the
+        state information for each address.
+    """
+    def __init__(
+        self,
+        header: Container,
+        stream: IO[bytes],
+        structs: DWARFStructs,
+        program_start_offset: int,
+        program_end_offset: int,
+    ) -> None:
+        """
+            header:
+                The header of this line program. Note: LineProgram may modify
+                its header by appending file entries if DW_LNE.define_file
+                instructions are encountered.
+
+            stream:
+                The stream this program can be read from.
+
+            structs:
+                A DWARFStructs instance suitable for this line program
+
+            program_{start|end}_offset:
+                Offset in the debug_line section stream where this program
+                starts (the actual program, after the header), and where it
+                ends.
+                The actual range includes start but not end: [start, end - 1]
+        """
+        self.stream = stream
+        self.header = header
+        self.structs = structs
+        self.program_start_offset = program_start_offset
+        self.program_end_offset = program_end_offset
+
+    def get_entries(self) -> list[LineProgramEntry]:
+        """ Get the decoded entries for this line program. Return a list of
+            LineProgramEntry objects.
+            Note that this contains more information than absolutely required
+            for the line table. The line table can be easily extracted from
+            the list of entries by looking only at entries with non-None
+            state. The extra information is mainly for the purposes of display
+            with readelf and debugging.
+        """
+        return self._decode_line_program
+
+    #------ PRIVATE ------#
+
+    def __getitem__(self, name: str) -> Any:
+        """ Implement dict-like access to header entries
+        """
+        return self.header[name]
+
+    @cached_property
+    def _decode_line_program(self) -> list[LineProgramEntry]:
+        entries = []
+        state = LineState(self.header['default_is_stmt'])
+
+        def add_entry_new_state(cmd: int, args: list[int], is_extended: bool = False) -> None:
+            # Add an entry that sets a new state.
+            # After adding, clear some state registers.
+            entries.append(LineProgramEntry(
+                cmd, is_extended, args, copy.copy(state)))
+            state.discriminator = 0
+            state.basic_block = False
+            state.prologue_end = False
+            state.epilogue_begin = False
+
+        def add_entry_old_state(cmd: int, args: list[int], is_extended: bool = False) -> None:
+            # Add an entry that doesn't visibly set a new state
+            entries.append(LineProgramEntry(cmd, is_extended, args, None))
+
+        offset = self.program_start_offset
+        while offset < self.program_end_offset:
+            opcode: int = struct_parse(
+                self.structs.the_Dwarf_uint8,
+                self.stream,
+                offset)
+
+            # As an exercise in avoiding premature optimization, if...elif
+            # chains are used here for standard and extended opcodes instead
+            # of dispatch tables. This keeps the code much cleaner. Besides,
+            # the majority of instructions in a typical program are special
+            # opcodes anyway.
+            if opcode >= self.header['opcode_base']:
+                # Special opcode (follow the recipe in 6.2.5.1)
+                maximum_operations_per_instruction: int = self['maximum_operations_per_instruction']
+                adjusted_opcode: int = opcode - self['opcode_base']
+                operation_advance: int = adjusted_opcode // self['line_range']
+                address_addend: int = (
+                    self['minimum_instruction_length'] *
+                        ((state.op_index + operation_advance) //
+                          maximum_operations_per_instruction))
+                state.address += address_addend
+                state.op_index = (state.op_index + operation_advance) % maximum_operations_per_instruction
+                line_addend: int = self['line_base'] + (adjusted_opcode % self['line_range'])
+                state.line += line_addend
+                add_entry_new_state(
+                    opcode, [line_addend, address_addend, state.op_index])
+            elif opcode == 0:
+                # Extended opcode: start with a zero byte, followed by
+                # instruction size and the instruction itself.
+                inst_len: int = struct_parse(self.structs.the_Dwarf_uleb128,
+                                        self.stream)
+                ex_opcode: int = struct_parse(self.structs.the_Dwarf_uint8,
+                                         self.stream)
+
+                if ex_opcode == DW_LNE.end_sequence:
+                    state.end_sequence = True
+                    state.is_stmt = 0
+                    add_entry_new_state(ex_opcode, [], is_extended=True)
+                    # reset state
+                    state = LineState(self.header['default_is_stmt'])
+                elif ex_opcode == DW_LNE.set_address:
+                    operand: int = struct_parse(self.structs.the_Dwarf_target_addr,
+                                           self.stream)
+                    state.address = operand
+                    add_entry_old_state(ex_opcode, [operand], is_extended=True)
+                elif ex_opcode == DW_LNE.define_file:
+                    operand = struct_parse(
+                        self.structs.Dwarf_lineprog_file_entry, self.stream)
+                    self['file_entry'].append(operand)
+                    add_entry_old_state(ex_opcode, [operand], is_extended=True)
+                elif ex_opcode == DW_LNE.set_discriminator:
+                    operand = struct_parse(self.structs.the_Dwarf_uleb128,
+                                           self.stream)
+                    state.discriminator = operand
+                else:
+                    # Unknown, but need to roll forward the stream because the
+                    # length is specified. Seek forward inst_len - 1 because
+                    # we've already read the extended opcode, which takes part
+                    # in the length.
+                    self.stream.seek(inst_len - 1, os.SEEK_CUR)
+            else: # 0 < opcode < opcode_base
+                # Standard opcode
+                if opcode == DW_LNS.copy:
+                    add_entry_new_state(opcode, [])
+                elif opcode == DW_LNS.advance_pc:
+                    operand = struct_parse(self.structs.the_Dwarf_uleb128,
+                                           self.stream)
+                    address_addend = (
+                        operand * self.header['minimum_instruction_length'])
+                    state.address += address_addend
+                    add_entry_old_state(opcode, [address_addend])
+                elif opcode == DW_LNS.advance_line:
+                    operand = struct_parse(self.structs.the_Dwarf_sleb128,
+                                           self.stream)
+                    state.line += operand
+                elif opcode == DW_LNS.set_file:
+                    operand = struct_parse(self.structs.the_Dwarf_uleb128,
+                                           self.stream)
+                    state.file = operand
+                    add_entry_old_state(opcode, [operand])
+                elif opcode == DW_LNS.set_column:
+                    operand = struct_parse(self.structs.the_Dwarf_uleb128,
+                                           self.stream)
+                    state.column = operand
+                    add_entry_old_state(opcode, [operand])
+                elif opcode == DW_LNS.negate_stmt:
+                    state.is_stmt = not state.is_stmt
+                    add_entry_old_state(opcode, [])
+                elif opcode == DW_LNS.set_basic_block:
+                    state.basic_block = True
+                    add_entry_old_state(opcode, [])
+                elif opcode == DW_LNS.const_add_pc:
+                    adjusted_opcode = 255 - self['opcode_base']
+                    address_addend = ((adjusted_opcode // self['line_range']) *
+                                      self['minimum_instruction_length'])
+                    state.address += address_addend
+                    add_entry_old_state(opcode, [address_addend])
+                elif opcode == DW_LNS.fixed_advance_pc:
+                    operand = struct_parse(self.structs.the_Dwarf_uint16,
+                                           self.stream)
+                    state.address += operand
+                    add_entry_old_state(opcode, [operand])
+                elif opcode == DW_LNS.set_prologue_end:
+                    state.prologue_end = True
+                    add_entry_old_state(opcode, [])
+                elif opcode == DW_LNS.set_epilogue_begin:
+                    state.epilogue_begin = True
+                    add_entry_old_state(opcode, [])
+                elif opcode == DW_LNS.set_isa:
+                    operand = struct_parse(self.structs.the_Dwarf_uleb128,
+                                           self.stream)
+                    state.isa = operand
+                    add_entry_old_state(opcode, [operand])
+                else:
+                    dwarf_assert(False, 'Invalid standard line program opcode: %s' % (
+                        opcode,))
+            offset = self.stream.tell()
+        return entries

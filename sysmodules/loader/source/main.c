@@ -90,6 +90,43 @@ void __wrap_exit(int rc)
 void __sync_init();
 void __libc_init_array(void);
 
+// Sysplugin support
+#define LOADER_SYSPLUGIN_MAGIC 0x25584E33u
+extern u32 svcSysPluginLoaderGetEntry(void);
+extern u8 __end__[];
+
+typedef struct
+{
+    Result (*FSUSER_OpenArchive)(FS_Archive *, FS_ArchiveID, FS_Path);
+    Result (*FSUSER_CloseArchive)(FS_Archive);
+    Result (*FSUSER_OpenDirectory)(Handle *, FS_Archive, FS_Path);
+    Result (*FSDIR_Read)(Handle, u32 *, u32, FS_DirectoryEntry *);
+    Result (*FSDIR_Close)(Handle);
+    Result (*FSUSER_OpenFile)(Handle *, FS_Archive, FS_Path, u32, u32);
+    Result (*FSFILE_Read)(Handle, u32 *, u64, void *, u32);
+    Result (*FSFILE_Write)(Handle, u32 *, u64, const void *, u32, u32);
+    Result (*FSFILE_Close)(Handle);
+    Result (*FSUSER_DeleteFile)(FS_Archive, FS_Path);
+    Result (*FSUSER_RenameFile)(FS_Archive, FS_Path, FS_Archive, FS_Path);
+} SysPluginHost;
+
+typedef Result (*SysPluginLoaderEntry)(const SysPluginHost *, u32, u32, u32, bool);
+
+static const SysPluginHost syspluginHost =
+{
+    FSUSER_OpenArchive,
+    FSUSER_CloseArchive,
+    FSUSER_OpenDirectory,
+    FSDIR_Read,
+    FSDIR_Close,
+    FSUSER_OpenFile,
+    FSFILE_Read,
+    FSFILE_Write,
+    FSFILE_Close,
+    FSUSER_DeleteFile,
+    FSUSER_RenameFile,
+};
+
 // called before main
 void initSystem(void)
 {
@@ -112,6 +149,20 @@ void initSystem(void)
 
     // Hackjob
     assertSuccess(FSUSER_InitializeWithSdkVersion(*fsGetSessionHandle(), 0x70200C8));
+
+    // Sysplugin support
+    if (CONFIG(LOADEXTFIRMSANDMODULES))
+    {
+        const u32 rangeLow = ((u32)__end__ + 0xFFFu) & ~0xFFFu;
+        (void)((SysPluginLoaderEntry)svcSysPluginLoaderGetEntry())(
+            &syspluginHost,
+            LOADER_SYSPLUGIN_MAGIC,
+            rangeLow,
+            0x1F000000u,
+            true
+        );
+    }
+
     assertSuccess(FSUSER_SetPriority(0));
 
     assertSuccess(pxiPmInit());

@@ -24,7 +24,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/svc
 DATA		:=	data
-INCLUDES	:=	include include/svc
+INCLUDES	:=	include include/svc ../sysplugin/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -135,6 +135,10 @@ $(OUTPUT).elf	:	$(OFILES)
 	@$(NM) -CSn $@ > $(notdir $*.lst)
 
 $(OFILES_SRC)	: $(HFILES_BIN)
+
+# Sysplugin size savers
+SysPluginLoader.o: CFLAGS += -Os -fPIE
+main.o: CFLAGS += -Os
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

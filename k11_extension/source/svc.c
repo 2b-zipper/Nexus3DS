@@ -49,6 +49,8 @@
 #include "svc/CopyHandle.h"
 #include "svc/TranslateHandle.h"
 #include "svc/ControlMemoryUnsafe.h"
+// Sysplugin support
+#include "svc/SysPluginLoader.h"
 
 void *officialSVCs[0x7E] = {NULL};
 void *alteredSvcTable[0x100] = {NULL};
@@ -103,6 +105,8 @@ void buildAlteredSvcTable(void)
     alteredSvcTable[0xB1] = CopyHandleWrapper;
     alteredSvcTable[0xB2] = TranslateHandleWrapper;
     alteredSvcTable[0xB3] = ControlProcess;
+    // Sysplugin support
+    alteredSvcTable[0xB4] = SysPluginLoaderGetEntry;
 }
 
 void signalSvcEntry(u32 svcId)

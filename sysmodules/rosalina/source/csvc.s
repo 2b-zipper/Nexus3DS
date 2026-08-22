@@ -123,3 +123,9 @@ SVC_BEGIN svcControlProcess
     svc 0xB3
     bx lr
 SVC_END
+
+@ Sysplugin support
+SVC_BEGIN svcSysPluginLoaderGetEntry
+    svc 0xB4
+    bx lr
+SVC_END
