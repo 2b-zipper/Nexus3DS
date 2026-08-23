@@ -43,7 +43,7 @@ typedef struct
 
 #define SYSPLUGIN_MAX_PLUGINS 31u
 #define SYSPLUGIN_NAME_SIZE 256u
-#define SYSPLUGIN_3NX_HEADER_SIZE 0x2Cu
+#define SYSPLUGIN_3NX_HEADER_SIZE 0x30u
 #define SYSPLUGIN_3NR_MAGIC       0x21524E33u
 #define SYSPLUGIN_HOST_PROVIDER   0u
 #define LOADER_PLUGIN_MAGIC       0x25584E33u
@@ -63,6 +63,7 @@ typedef struct
     uint32_t ownAbiHi;
     uint32_t expectedEnvLo;
     uint32_t expectedEnvHi;
+    uint32_t metadataSize;
 } SysPlugin3nxHeader;
 
 typedef struct

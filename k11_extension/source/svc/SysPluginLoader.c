@@ -4,7 +4,7 @@
 
 extern u32 convertVAToPA(const void *address, bool writeCheck);
 
-#define PLUGIN_HEADER_SIZE       0x2Cu
+#define PLUGIN_HEADER_SIZE       0x30u
 #define SYSPLUGIN_3NR_PAIR_OFF   0x04u
 #define SYSPLUGIN_NAME_SIZE      256u
 #define ARCHIVE_SDMC             0x00000009u
@@ -78,6 +78,7 @@ typedef struct
     u32 abiHi;
     u32 expectedEnvLo;
     u32 expectedEnvHi;
+    u32 metadataSize;
 } SysPluginHeader;
 
 typedef SysPluginEntry SysPlugin;
@@ -238,8 +239,8 @@ static bool SP_ReadHeader(
         return false;
     }
 
-    *nextOffset = (end + 0xFu) & ~0xFu;
-    return *nextOffset > fileOffset;
+    end = (end + 0xFu) & ~0xFu;
+    return SP_AddChecked(end, header->metadataSize, nextOffset) && *nextOffset > fileOffset;
 }
 
 static Result SP_AllocPages(
@@ -629,7 +630,8 @@ static bool SP_RunFixer(
     u32 rangeHigh,
     bool downward,
     Handle selfProcess,
-    SysPlugin *plugins
+    SysPlugin *plugins,
+    bool ignorePairMismatch
 )
 {
     u32 pair[2];
@@ -639,14 +641,14 @@ static bool SP_RunFixer(
     u32 address = 0;
     bool result = false;
     bool loaded;
+    const bool pairMatches = SP_ReadExact(host, file, SYSPLUGIN_3NR_PAIR_OFF, pair, sizeof(pair)) &&
+                             pair[0] == SYSPLUGIN_3NR_BUILD_PAIR_LO &&
+                             pair[1] == SYSPLUGIN_3NR_BUILD_PAIR_HI;
 
-    if (!SP_ReadExact(host, file, SYSPLUGIN_3NR_PAIR_OFF, pair, sizeof(pair)) ||
-        pair[0] != SYSPLUGIN_3NR_BUILD_PAIR_LO ||
-        pair[1] != SYSPLUGIN_3NR_BUILD_PAIR_HI ||
-        SP_FAILED(SP_AllocPages(totalSize, rangeLow, rangeHigh, downward, &address)))
+    if (!pairMatches || SP_FAILED(SP_AllocPages(totalSize, rangeLow, rangeHigh, downward, &address)))
     {
         host->FSFILE_Close(file);
-        return false;
+        return !pairMatches && ignorePairMismatch;
     }
 
     loaded = SP_ReadExact(host, file, SYSPLUGIN_3NR_CODE_OFFSET, (void *)address, SYSPLUGIN_3NR_CODE_SIZE);
@@ -876,11 +878,15 @@ Result SysPluginLoader_Main(
         }
 
         {
+            /* Keep this local K11 path buffer: do not pass direct SP_THREE_NR_* string-literal pointers to mapped 3nr code. */
             char threeNrPath[19];
             Handle file = 0;
             Result openResult;
+            bool keyed = false;
 
             SP_CopyString(threeNrPath, SP_THREE_NR_PATH);
+
+        retryThreeNr:
             openResult = host->FSUSER_OpenFile(
                 &file,
                 archive,
@@ -889,22 +895,18 @@ Result SysPluginLoader_Main(
                 0
             );
 
-            if (SP_FAILED(openResult) && environmentMismatch)
-            {
-                SP_CopyString(threeNrPath, SP_THREE_NR_KEYED_PATH);
-                openResult = host->FSUSER_OpenFile(
-                    &file,
-                    archive,
-                    SP_MakeAsciiPath(threeNrPath),
-                    FS_OPEN_READ,
-                    0
-                );
-            }
-
             if ((!SP_FAILED(openResult) || environmentMismatch) &&
                 (SP_FAILED(openResult) ||
-                 !SP_RunFixer(host, file, threeNrPath, pluginMagic, rangeLow, rangeHigh, downward, selfProcess, plugins)))
+                 !SP_RunFixer(host, file, threeNrPath, pluginMagic, rangeLow, rangeHigh, downward, selfProcess, plugins, !environmentMismatch)))
             {
+                if (!keyed)
+                {
+                    SP_CopyString(threeNrPath, SP_THREE_NR_KEYED_PATH);
+                    keyed = true;
+                    environmentMismatch = true;
+                    goto retryThreeNr;
+                }
+
                 if (SP_FAILED(openResult) && file)
                     host->FSFILE_Close(file);
                 svcCloseHandle(selfProcess);

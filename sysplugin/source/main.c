@@ -172,8 +172,8 @@ static bool Read3nxHeader(const SysPluginHost *host, Handle file, uint32_t fileO
         end > 0xFFFFFFF0u)
         return false;
 
-    *nextOffset = (end + 0xFu) & ~0xFu;
-    return *nextOffset > fileOffset;
+    end = (end + 0xFu) & ~0xFu;
+    return Add32(end, header->metadataSize, nextOffset) && *nextOffset > fileOffset;
 }
 
 static bool Earlier(const SysPluginEntry *current, const char *name, uint32_t priority, uint32_t fileOffset)
