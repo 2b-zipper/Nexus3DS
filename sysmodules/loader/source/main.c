@@ -8,6 +8,7 @@
 #include "service_manager.h"
 #include "3dsx.h"
 #include "hbldr.h"
+#include "SysPluginLoaderEntryGenerated.h"
 
 u32 config, multiConfig, bootConfig;
 bool isN3DS, isSdMode, nextGamePatchDisabled, isLumaWithKext;
@@ -92,7 +93,6 @@ void __libc_init_array(void);
 
 // Sysplugin support
 #define LOADER_SYSPLUGIN_MAGIC 0x25584E33u
-extern u32 svcSysPluginLoaderGetEntry(void);
 extern u8 __end__[];
 
 typedef struct
@@ -154,7 +154,10 @@ void initSystem(void)
     if (CONFIG(LOADEXTFIRMSANDMODULES))
     {
         const u32 rangeLow = ((u32)__end__ + 0xFFFu) & ~0xFFFu;
-        (void)((SysPluginLoaderEntry)svcSysPluginLoaderGetEntry())(
+        const SysPluginLoaderEntry entry = (SysPluginLoaderEntry)(
+            isN3DS ? SYSPLUGIN_LOADER_ENTRY_N3DS : SYSPLUGIN_LOADER_ENTRY_O3DS
+        );
+        (void)entry(
             &syspluginHost,
             LOADER_SYSPLUGIN_MAGIC,
             rangeLow,

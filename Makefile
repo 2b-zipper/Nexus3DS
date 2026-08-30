@@ -27,10 +27,10 @@ else
 NEXUS_VERSION := v$(NEXUS_VERSION_MAJOR).$(NEXUS_VERSION_MINOR).$(NEXUS_VERSION_BUILD)
 endif
 
-BASE_SUBFOLDERS	:=	sysmodules arm11 arm9
-SUBFOLDERS	:=	$(BASE_SUBFOLDERS) sysplugin k11_extension
+FIRM_SUBFOLDERS	:=	arm11 arm9
+SUBFOLDERS	:=	sysmodules $(FIRM_SUBFOLDERS) sysplugin k11_extension
 
-.PHONY:	all release clean $(SUBFOLDERS) sysplugin-tools
+.PHONY:	all release clean $(SUBFOLDERS) sysplugin-tools sysplugin-pair
 
 all:		boot.firm
 
@@ -45,7 +45,7 @@ $(NAME)$(NEXUS_VERSION).zip:	hbmenu.zip boot.firm boot.3nr
 	@cp $< $@
 	@zip $@ boot.firm boot.3nr -x "*.DS_Store*" "*__MACOSX*"
 
-boot.firm:	$(BASE_SUBFOLDERS) boot.3nr k11_extension
+boot.firm:	$(FIRM_SUBFOLDERS) sysplugin-pair
 	@firmtool build $@ -D sysmodules/sysmodules.bin arm11/arm11.elf arm9/arm9.elf k11_extension/k11_extension.elf \
 	-A 0x18180000 -C XDMA XDMA NDMA XDMA
 	@echo built... $(notdir $@)
@@ -57,16 +57,12 @@ hbmenu.zip:
 sysplugin-tools:
 	@$(MAKE) -C sysplugin tools
 
-sysmodules: sysplugin-tools
+sysplugin-pair:
+	+@python3 sysplugin/build_pair.py
 
-$(BASE_SUBFOLDERS):
+$(FIRM_SUBFOLDERS):
 	@$(MAKE) -C $@ all
 
-sysplugin: sysmodules
-	@$(MAKE) -C $@ all
+sysmodules sysplugin k11_extension: sysplugin-pair
 
-boot.3nr: sysplugin
-
-
-k11_extension: boot.3nr
-	@$(MAKE) -C $@ all
+boot.3nr: sysplugin-pair

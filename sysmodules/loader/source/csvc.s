@@ -13,8 +13,3 @@
 .macro SVC_END
     .cfi_endproc
 .endm
-
-SVC_BEGIN svcSysPluginLoaderGetEntry
-    svc 0xB4
-    bx lr
-SVC_END

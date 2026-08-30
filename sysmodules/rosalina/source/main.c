@@ -50,6 +50,7 @@
 
 #include "task_runner.h"
 #include "plugin.h"
+#include "SysPluginLoaderEntryGenerated.h"
 
 bool isN3DS;
 bool wifiOnBeforeSleep;
@@ -84,7 +85,6 @@ void __wrap_exit(int rc)
 
 // Sysplugin support
 #define ROSALINA_SYSPLUGIN_MAGIC 0x24584E33u
-extern u32 svcSysPluginLoaderGetEntry(void);
 
 typedef struct
 {
@@ -153,7 +153,10 @@ void initSystem(void)
     // Sysplugin support
     if ((((u32)out >> (u32)LOADEXTFIRMSANDMODULES) & 1) != 0)
     {
-        (void)((SysPluginLoaderEntry)svcSysPluginLoaderGetEntry())(
+        const SysPluginLoaderEntry entry = (SysPluginLoaderEntry)(
+            isN3DS ? SYSPLUGIN_LOADER_ENTRY_N3DS : SYSPLUGIN_LOADER_ENTRY_O3DS
+        );
+        (void)entry(
             &syspluginHost,
             ROSALINA_SYSPLUGIN_MAGIC,
             0x10000000u,

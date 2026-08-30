@@ -27,10 +27,11 @@ DEPS := $(OFILES:.o=.d)
 ELF := $(BUILD)/$(TARGET).elf
 OUTPUT := ../boot.3nr
 K11_HEADER := ../k11_extension/include/svc/SysPlugin3nrGenerated.h
+K11_ENTRY_HEADER := include/SysPluginLoaderEntryGenerated.h
 
 .PHONY: all clean tools
 
-all: $(SEMANTIC_PLUGIN) $(OUTPUT)
+all: $(SEMANTIC_PLUGIN) $(OUTPUT) $(K11_HEADER)
 
 tools: $(SEMANTIC_PLUGIN)
 
@@ -50,7 +51,7 @@ $(ELF): $(OFILES) 3nr.ld
 	@$(CC) $(LDFLAGS) $(OFILES) -lgcc -o $@
 	@$(NM) -CSn $@ > $(BUILD)/$(TARGET).lst
 
-$(OUTPUT): $(ELF) build3nr.py stable_abi.py semantic_marker.py binutils_elf.py ../sysmodules/loader/loader.elf ../sysmodules/rosalina/rosalina.elf
+$(OUTPUT) $(K11_HEADER) &: $(ELF) build3nr.py stable_abi.py semantic_marker.py binutils_elf.py ../sysmodules/loader/loader.elf ../sysmodules/rosalina/rosalina.elf
 	@python3 build3nr.py \
 		--fixer-elf $(ELF) \
 		--loader-elf ../sysmodules/loader/loader.elf --loader-root ../sysmodules/loader --loader-manifests ../sysmodules/loader/build/semantic_markers \
@@ -59,7 +60,7 @@ $(OUTPUT): $(ELF) build3nr.py stable_abi.py semantic_marker.py binutils_elf.py .
 
 clean:
 	@echo clean ...
-	@rm -rf $(BUILD) $(OUTPUT) $(K11_HEADER)
+	@rm -rf $(BUILD) $(OUTPUT) $(K11_HEADER) $(K11_ENTRY_HEADER) $(K11_ENTRY_HEADER).tmp
 	@find . -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 -include $(DEPS)

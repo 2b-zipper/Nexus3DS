@@ -28,7 +28,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/gdb source/menus source/plugin source/redshift
 DATA		:=	source/gdb/xml data
-INCLUDES	:=	include include/gdb include/menus include/redshift
+INCLUDES	:=	include include/gdb include/menus include/redshift ../../sysplugin/include
 
 #---------------------------------------------------------------------------------
 # options for code generation

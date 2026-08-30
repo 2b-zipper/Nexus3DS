@@ -63,5 +63,3 @@ Result SysPluginLoader_Main(
     u32 rangeHigh,
     bool unlock
 );
-
-u32 SysPluginLoaderGetEntry(void);

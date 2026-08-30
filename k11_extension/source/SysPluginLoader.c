@@ -1,8 +1,6 @@
-#include "svc/SysPluginLoader.h"
+#include "SysPluginLoader.h"
 #include "svc/SysPlugin3nrGenerated.h"
 #include "sysplugin_entry.h"
-
-extern u32 convertVAToPA(const void *address, bool writeCheck);
 
 #define PLUGIN_HEADER_SIZE       0x30u
 #define SYSPLUGIN_3NR_PAIR_OFF   0x04u
@@ -1107,9 +1105,4 @@ Result SysPluginLoader_Main(
     (void)SP_FreePages(workspaceAddress, workspaceSize);
 
     return 0;
-}
-
-u32 SysPluginLoaderGetEntry(void)
-{
-    return convertVAToPA(SysPluginLoader_Main, false) | 0x80000000u;
 }
