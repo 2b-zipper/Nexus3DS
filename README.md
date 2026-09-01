@@ -36,15 +36,6 @@
 
 **Nexus3DS** is an enhanced fork of Luma3DS that incorporates numerous community features and improvements. This project builds upon several Luma3DS forks, combining the best features while adding unique enhancements for an improved user experience.
 
-## Limitations
-**CTGP7**, does not, and never will, work with Nexus3DS.
-
-The reason why is because there is an anti-cheat which prevent the use of Luma3DS forks. Which is a good thing to make sure the CTGP network is safe from cheaters.
-
-**DO NOT BLAME PABLOMK7 FOR THIS**. We won't ask him to do something about this (such as whitelisting our firm), since he's already working on a ton of things, and adding that also mean taking responsibilities and such, and we don't want to disturb him for this. Thank for your understanding.
-
-**Workaround**: you can use Luma's [Firm Payload Chainloader](https://github.com/LumaTeam/Luma3DS/wiki/Optional-features#firm-payload-chainloader) feature to be able to quickly choose to boot between Nexus3DS and Luma3DS depending of your needs. The best way would be to use [Fastboot3DS](https://github.com/derrekr/fastboot3DS/releases) allowing you to configure the boot order, buttons and such.
-
 ## Enhanced Features
 
 **Core Enhancements:**
@@ -62,6 +53,7 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Detailed screen brightness adjustment - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/83e8d471a377bc6960fae00d6694f5fe86dcca42)*
 * Volume display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/dc636d82492d1e87eb51785fa7f2a98617e7ece9)*
 * N3DS clock + L2 status display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/2dbfa8b5c9b719b7f3056691f54332f42da6de8d)*
+* 3NX Sysplugin loading ([see more here](https://github.com/Blurro/3NX-Plugin-DevKit)) - *Original by [@Blurro](https://github.com/Blurro)*
 
 * Title ID display in System info
 
@@ -150,6 +142,7 @@ The build produces a single file: `boot.firm`. Copy it to the root of your SD ca
 * **[@cooolgamer](https://github.com/cooolgamer)**
 * **[@Alexyo21](https://github.com/Alexyo21)**
 * **[@Core-2-Extreme](https://github.com/Core-2-Extreme)**
+* **[@Blurro](https://github.com/Blurro)**
 
 *See also: [People who made this fork possible](#credits)*
 
