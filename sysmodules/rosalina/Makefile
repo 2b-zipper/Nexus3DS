@@ -1,5 +1,7 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
+
+.DEFAULT_GOAL := all
 #---------------------------------------------------------------------------------
 
 ifeq ($(strip $(DEVKITARM)),)
@@ -26,7 +28,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/gdb source/menus source/plugin source/redshift
 DATA		:=	source/gdb/xml data
-INCLUDES	:=	include include/gdb include/menus include/redshift
+INCLUDES	:=	include include/gdb include/menus include/redshift ../../sysplugin/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -48,6 +50,24 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map),-wrap,exit,--section-start,.text=0x14000000
+
+# Sysplugin support
+ifneq ($(wildcard $(TOPDIR)/3dsx.specs),)
+LDFLAGS = -specs=$(TOPDIR)/3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map),-wrap,exit,--section-start,.text=0x14000000
+ifneq ($(wildcard $(TOPDIR)/plgmarkers.ld),)
+LDFLAGS += -Wl,-T,$(TOPDIR)/plgmarkers.ld
+endif
+endif
+
+# Semantic sysplugin hook identities
+SEMANTIC_MARKER_PLUGIN := $(abspath $(TOPDIR)/../../sysplugin/build/semantic_marker_plugin.so)
+SEMANTIC_MARKER_DIR := $(abspath $(TOPDIR)/build/semantic_markers)
+SEMANTIC_MARKER_FLAGS := -fplugin=$(SEMANTIC_MARKER_PLUGIN) -fplugin-arg-semantic_marker_plugin-out-dir=$(SEMANTIC_MARKER_DIR)
+CFLAGS += $(SEMANTIC_MARKER_FLAGS)
+CXXFLAGS += $(SEMANTIC_MARKER_FLAGS)
+
+$(SEMANTIC_MARKER_PLUGIN):
+	@$(MAKE) -C $(TOPDIR)/../../sysplugin tools
 
 LIBS	:=	-lctru -lm
 
@@ -103,16 +123,26 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-.PHONY: $(BUILD) clean all
+# Sysplugin support
+.PHONY: $(BUILD) clean all elf semantic-marker-dir
 
 #---------------------------------------------------------------------------------
-all: $(BUILD)
+all: semantic-marker-dir $(BUILD)
+
+semantic-marker-dir:
+	@mkdir -p $(BUILD)/semantic_markers
+
+# Sysplugin support
+elf: semantic-marker-dir
+	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile $(CURDIR)/$(TARGET).elf
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
+# Sysplugin support
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).cxi $(TARGET).elf
@@ -142,7 +172,7 @@ $(OUTPUT).elf	:	$(OFILES)
 
 draw.o: CFLAGS += -O3
 
-$(OFILES_SRC)	: $(HFILES_BIN)
+$(OFILES_SRC)	: $(HFILES_BIN) $(SEMANTIC_MARKER_PLUGIN)
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

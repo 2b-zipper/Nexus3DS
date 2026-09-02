@@ -27,9 +27,10 @@ else
 NEXUS_VERSION := v$(NEXUS_VERSION_MAJOR).$(NEXUS_VERSION_MINOR).$(NEXUS_VERSION_BUILD)
 endif
 
-SUBFOLDERS	:=	sysmodules arm11 arm9 k11_extension
+FIRM_SUBFOLDERS	:=	arm11 arm9
+SUBFOLDERS	:=	sysmodules $(FIRM_SUBFOLDERS) sysplugin k11_extension
 
-.PHONY:	all release clean $(SUBFOLDERS)
+.PHONY:	all release clean $(SUBFOLDERS) sysplugin-tools sysplugin-pair
 
 all:		boot.firm
 
@@ -37,14 +38,14 @@ release:	$(NAME)$(NEXUS_VERSION).zip
 
 clean:
 	@$(foreach dir, $(SUBFOLDERS), $(MAKE) -C $(dir) clean &&) true
-	@rm -rf *.firm *.zip *.3dsx
+	@rm -rf *.firm *.zip *.3dsx *.3nr
 
 # boot.3dsx comes from https://github.com/fincs/new-hbmenu/releases
-$(NAME)$(NEXUS_VERSION).zip:	hbmenu.zip boot.firm
+$(NAME)$(NEXUS_VERSION).zip:	hbmenu.zip boot.firm boot.3nr
 	@cp $< $@
-	@zip $@ boot.firm -x "*.DS_Store*" "*__MACOSX*"
+	@zip $@ boot.firm boot.3nr -x "*.DS_Store*" "*__MACOSX*"
 
-boot.firm:	$(SUBFOLDERS)
+boot.firm:	$(FIRM_SUBFOLDERS) sysplugin-pair
 	@firmtool build $@ -D sysmodules/sysmodules.bin arm11/arm11.elf arm9/arm9.elf k11_extension/k11_extension.elf \
 	-A 0x18180000 -C XDMA XDMA NDMA XDMA
 	@echo built... $(notdir $@)
@@ -53,5 +54,15 @@ hbmenu.zip:
 	@curl -sSfL $(shell curl -s https://api.github.com/repos/devkitPro/3ds-hbmenu/releases/latest | grep 'browser_' | cut -d\" -f4) -o $@
 	@echo downloaded... $(notdir $@)
 
-$(SUBFOLDERS):
+sysplugin-tools:
+	@$(MAKE) -C sysplugin tools
+
+sysplugin-pair:
+	+@python3 sysplugin/build_pair.py
+
+$(FIRM_SUBFOLDERS):
 	@$(MAKE) -C $@ all
+
+sysmodules sysplugin k11_extension: sysplugin-pair
+
+boot.3nr: sysplugin-pair

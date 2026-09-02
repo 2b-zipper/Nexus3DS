@@ -36,6 +36,15 @@
 
 **Nexus3DS** is an enhanced fork of Luma3DS that incorporates numerous community features and improvements. This project builds upon several Luma3DS forks, combining the best features while adding unique enhancements for an improved user experience.
 
+## Limitations
+**CTGP7**, does not, and never will, work with Nexus3DS.
+
+The reason why is because there is an anti-cheat which prevent the use of Luma3DS forks. Which is a good thing to make sure the CTGP network is safe from cheaters.
+
+**DO NOT BLAME PABLOMK7 FOR THIS**. We won't ask him to do something about this (such as whitelisting our firm), since he's already working on a ton of things, and adding that also mean taking responsibilities and such, and we don't want to disturb him for this. Thank for your understanding.
+
+**Workaround**: you can use Luma's [Firm Payload Chainloader](https://github.com/LumaTeam/Luma3DS/wiki/Optional-features#firm-payload-chainloader) feature to be able to quickly choose to boot between Nexus3DS and Luma3DS depending of your needs. The best way would be to use [Fastboot3DS](https://github.com/derrekr/fastboot3DS/releases) allowing you to configure the boot order, buttons and such.
+
 ## Enhanced Features
 
 **Core Enhancements:**
@@ -69,6 +78,8 @@
 * Day/Night mode allowing to change the brightness, toggle LEDs, etc. At a desired time - *Original by [cooolgamer](https://github.com/cooolgamorg/Starlight3DS/commit/d0eb60bc21f464e7269dc7b93416e89423232de9) based on [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/54cdedce2a55b8deae730d0af077ee2907f0444b)*
 * Random little messages in the arm11/9 exception handler :)
 * Screenshots include title ID in filename
+* Customizable LCD backlight toggle shortcut (Does not work on old 2DS)
+* Experimental faster boot time for big sd cards (Expert option, may corrupt your sd card if full)
 
 **Extra Configuration Menu Options:**
 * Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
@@ -76,9 +87,11 @@
 * Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * Save screenshots in date folders
 * Combine top/bottom screenshots (saved with _cmb suffix)
-* Toggle bottom LCD backlight with Start+Select
 * Use Fahrenheit for temperature display (defaults to Celsius)
 * Use 12-hour clock format in Rosalina menu (defaults to 24-hour)
+
+**Expert Zone:**
+- To toggle hidden options quickly, you can use the Konami code on the luma configuration menu. WARNING: These are advanced options not meant to be used by regular users, use carefully!
 
 For detailed technical information, please refer to the [official Luma3DS documentation](https://github.com/LumaTeam/Luma3DS/wiki) and [README](https://github.com/LumaTeam/Luma3DS/blob/master/README.md).
 
@@ -136,6 +149,7 @@ The build produces a single file: `boot.firm`. Copy it to the root of your SD ca
 * **[@2b-zipper](https://github.com/2b-zipper)**
 * **[@cooolgamer](https://github.com/cooolgamer)**
 * **[@Alexyo21](https://github.com/Alexyo21)**
+* **[@Core-2-Extreme](https://github.com/Core-2-Extreme)**
 
 *See also: [People who made this fork possible](#credits)*
 

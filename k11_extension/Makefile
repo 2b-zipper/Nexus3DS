@@ -24,7 +24,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/svc
 DATA		:=	data
-INCLUDES	:=	include include/svc
+INCLUDES	:=	include include/svc ../sysplugin/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -45,7 +45,7 @@ CFLAGS	+=	$(INCLUDE)
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=$(TOPDIR)/linker.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS	=	-specs=$(TOPDIR)/linker.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map) -Wl,--undefined=SysPluginLoader_Main
 
 LIBS	:=
 
@@ -135,6 +135,10 @@ $(OUTPUT).elf	:	$(OFILES)
 	@$(NM) -CSn $@ > $(notdir $*.lst)
 
 $(OFILES_SRC)	: $(HFILES_BIN)
+
+# Sysplugin size savers
+SysPluginLoader.o: CFLAGS += -Os -fPIE
+main.o: CFLAGS += -Os
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
