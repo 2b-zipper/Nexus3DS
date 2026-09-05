@@ -36,6 +36,15 @@
 
 **Nexus3DS** is an enhanced fork of Luma3DS that incorporates numerous community features and improvements. This project builds upon several Luma3DS forks, combining the best features while adding unique enhancements for an improved user experience.
 
+## Limitations
+**CTGP7** does not work with Nexus3DS.
+
+The reason why is because there is an anti-cheat which prevent the use of Luma3DS forks. Which is a good thing to make sure the CTGP network is safe from cheaters.
+
+**DO NOT BLAME PABLOMK7 FOR THIS**. We won't ask him to do something about this (such as whitelisting our firm), since he's already working on a ton of things, and adding that also mean taking responsibilities and such, and we don't want to disturb him for this. Thank for your understanding.
+
+**Workaround**: you can use Luma's [Firm Payload Chainloader](https://github.com/LumaTeam/Luma3DS/wiki/Optional-features#firm-payload-chainloader) feature to be able to quickly choose to boot between Nexus3DS and Luma3DS depending of your needs. The best way would be to use [Fastboot3DS](https://github.com/derrekr/fastboot3DS/releases) allowing you to configure the boot order, buttons and such.
+
 ## Enhanced Features
 
 **Core Enhancements:**
@@ -91,7 +100,7 @@ For detailed technical information, please refer to the [official Luma3DS docume
 
 **Nexus3DS** requires [boot9strap](https://github.com/SciresM/boot9strap) to run.
 
-Once boot9strap has been installed, simply download the latest `boot.firm` file from the [releases page](https://github.com/2b-zipper/Nexus3DS/releases/latest) and place it on the root of your SD card to "install" or upgrade Nexus3DS. Replace any existing `boot.firm` file if necessary.
+Once boot9strap has been installed, simply download the latest `boot.firm` and `boot.3nr` file from the [releases page](https://github.com/2b-zipper/Nexus3DS/releases/latest) and place it on the root of your SD card to "install" or upgrade Nexus3DS. Replace any existing `boot.firm` file if necessary. <br>After an update, you may delete old `boot.*.3nr` files if you do not intend to switch to an older version. This file exists for Sysplugin repairing.
 
 To build from source, see [Building from source](#building-from-source) below.
 
