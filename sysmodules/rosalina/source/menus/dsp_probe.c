@@ -155,7 +155,7 @@ static int DspProbe_DumpProcess(const ProbeProc *proc, char *status)
         len += sprintf(probeMapText + len, "%08lx-%08lx %-10s perm %lu",
             memi.base_addr, memi.base_addr + memi.size, DspProbe_StateName(memi.state), (u32)memi.perm);
 
-        bool candidate = (memi.state == MEMSTATE_SHARED || memi.state == MEMSTATE_IO || memi.state == MEMSTATE_ALIAS)
+        bool candidate = (memi.state == MEMSTATE_SHARED || memi.state == MEMSTATE_IO || memi.state == MEMSTATE_ALIAS || memi.state == MEMSTATE_STATIC)
             && memi.size >= PROBE_MIN_REGION && memi.size <= PROBE_MAX_REGION;
 
         if (candidate && dumps < PROBE_MAX_DUMPS)
