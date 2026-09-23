@@ -25,6 +25,7 @@
 */
 
 #include "menus/debugger.h"
+#include "menus/dsp_probe.h"
 #include "memory.h"
 #include "draw.h"
 #include "minisoc.h"
@@ -42,6 +43,7 @@ Menu debuggerMenu = {
         { "Enable debugger",                        METHOD, .method = &DebuggerMenu_EnableDebugger  },
         { "Disable debugger",                       METHOD, .method = &DebuggerMenu_DisableDebugger },
         { "Force-debug next application at launch", METHOD, .method = &DebuggerMenu_DebugNextApplicationByForce },
+        { "DSP probe (dump process memory)",         METHOD, .method = &DspProbeMenu_Show },
         {},
     }
 };
