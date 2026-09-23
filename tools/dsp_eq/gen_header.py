@@ -38,6 +38,8 @@ def main():
              '#define DSPEQ_DIAG_A         0x%04X' % (g.DIAG_A - g.EQ),
              '#define DSPEQ_DIAG_B         0x%04X' % (g.DIAG_B - g.EQ),
              '#define DSPEQ_DIAG_IDX0      0x%04X' % (g.DIAG_IDX0 - g.EQ),
+             '#define DSPEQ_DIAG_CF        0x%04X' % (g.DIAG_CF - g.EQ),
+             '#define DSPEQ_DIAG_ST        0x%04X' % (g.DIAG_ST - g.EQ),
              '#define DSPEQ_DIAG_IDX1      0x%04X' % (g.DIAG_IDX1 - g.EQ),
              '', '// DSP firmware words at DSPEQ_FINGERPRINT_ADDR (the code around the two hooked calls) that identify the supported firmware',
              'static const u16 dspEqFingerprint[16] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0x%04X, 0x5050, 0x5B24, 0x5E18, 0x3C30, 0x41C0, 0x%04X, 0xD4B8 };' % (g.HOOK_A[1], g.HOOK_B[1]),

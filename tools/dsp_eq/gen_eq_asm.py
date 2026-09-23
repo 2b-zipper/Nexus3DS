@@ -21,6 +21,8 @@ DIAG_B = EQ + 0x73       # calls through the soft clipping path
 DIAG_IDX0 = EQ + 0x74    # firmware's output read index ([0x07ec], advances 16 words per 0.24 ms) when the routine started ...
 DIAG_IDX1 = EQ + 0x75    # ... and when it finished (the difference is how long the equalizer took)
 RING_IDX = 0x07EC
+DIAG_CF = EQ + 0x80      # copy of the bass band's 7 coefficient words as the DSP read them ...
+DIAG_ST = EQ + 0x88      # ... and of the bass band's left channel filter state after the last frame
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
@@ -119,6 +121,11 @@ def gen():
             a.label(lbl + '_pre')
             a.ins('modr [r1++]')                                   # skip the other channel
             a.label(lbl)                                           # label after last instruction
+    for i in range(7):                             # diagnostics (only runs when the equalizer is active)
+        a.ins('mov [0x$%04x] a0' % (CF(0) + i), 2)
+        a.ins('mov a0l [0x$%04x]' % (DIAG_CF + i), 2)
+        a.ins('mov [0x$%04x] a0' % (ST(0, 0) + i), 2)
+        a.ins('mov a0l [0x$%04x]' % (DIAG_ST + i), 2)
     a.label('DONE')
     a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
     a.ins('mov a0l [0x$%04x]' % DIAG_IDX1, 2)
