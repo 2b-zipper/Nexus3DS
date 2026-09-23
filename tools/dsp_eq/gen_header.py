@@ -33,6 +33,10 @@ def main():
              '#define DSPEQ_FINGERPRINT_ADDR 0x2FE4 // first program word of the firmware fingerprint',
              '#define DSPEQ_DATA_BASE      0x%04X   // data memory word address of the parameter block' % g.EQ,
              '#define DSPEQ_MAGIC          0x%04X' % g.MAGIC,
+             '#define DSPEQ_DIAG_CALLS     0x%04X   // word offsets (from DSPEQ_DATA_BASE) of the routine\'s diagnostic counters' % (g.DIAG_CALLS - g.EQ),
+             '#define DSPEQ_DIAG_R4        0x%04X' % (g.DIAG_R4 - g.EQ),
+             '#define DSPEQ_DIAG_A         0x%04X' % (g.DIAG_A - g.EQ),
+             '#define DSPEQ_DIAG_B         0x%04X' % (g.DIAG_B - g.EQ),
              '', '// DSP firmware words at DSPEQ_FINGERPRINT_ADDR (the code around the two hooked calls) that identify the supported firmware',
              'static const u16 dspEqFingerprint[16] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0x%04X, 0x5050, 0x5B24, 0x5E18, 0x3C30, 0x41C0, 0x%04X, 0xD4B8 };' % (g.HOOK_A[1], g.HOOK_B[1]),
              '', 'static const u16 dspEqCode[DSPEQ_CODE_WORDS] = {']

@@ -43,6 +43,10 @@ typedef struct DspEqStatus {
     u32 installs;       // how many times the patch was applied
     u32 fixes;          // how many times the parameter block had to be restored
     u16 hookA, hookB;   // operands of the two hooked calls in the firmware (valid if dspRunning)
+    u16 diagCalls;      // how many times the DSP routine ran since the patch was installed
+    u16 diagR4;         // buffer pointer it received the last time
+    u16 diagA, diagB;   // calls through the plain copy / soft clipping output path
+    u32 callsPerSec;    // measured rate of diagCalls (about 204 when everything runs normally)
     u16 magic;          // parameter block magic (valid if dspRunning)
 } DspEqStatus;
 

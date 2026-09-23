@@ -13,6 +13,11 @@ EQ = 0x8100               # data memory block (words): padding at the start of t
 MAGIC = 0xE0E1
 CF = lambda band: EQ + 0x10 + 8 * band
 ST = lambda band, ch: EQ + 0x40 + 8 * (band * 2 + ch)
+# diagnostics the routine keeps for Rosalina to display
+DIAG_CALLS = EQ + 0x70   # number of times the routine ran
+DIAG_R4 = EQ + 0x71      # buffer pointer (r4) it received the last time
+DIAG_A = EQ + 0x72       # calls through the plain copy path
+DIAG_B = EQ + 0x73       # calls through the soft clipping path
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
@@ -50,14 +55,23 @@ class Asm:
 
 def gen():
     a = Asm(CODE_BASE)
+    def bump(addr):                                # a0 is dead here (the callers reload it)
+        a.ins('mov [0x$%04x] a0' % addr, 2)
+        a.ins('add 0x$0001 a0', 2)
+        a.ins('mov a0l [0x$%04x]' % addr, 2)
     a.label('ENTRY_A')
     a.ins('call 0x0000$%04x always' % HOOK_A[1], 2)
+    bump(DIAG_A)
     a.ins('br 0x0000$@BODY@ always', 2)
     a.label('ENTRY_B')
     a.ins('call 0x0000$%04x always' % HOOK_B[1], 2)
+    bump(DIAG_B)
     a.ins('br 0x0000$@BODY@ always', 2)
     a.label('BODY')                                # r4 = start of the 160-frame stereo buffer just written (both callees preserve it)
     a.ins('push r0'); a.ins('push r1'); a.ins('push r2'); a.ins('push r4'); a.ins('push y0')
+    bump(DIAG_CALLS)
+    a.ins('mov r4 a0')
+    a.ins('mov a0l [0x$%04x]' % DIAG_R4, 2)
     a.ins('mov [0x$%04x] a0' % EQ, 2)
     a.ins('cmpv 0x$%04x a0l' % MAGIC, 2)
     a.ins('br 0x0000$@DONE@ neq', 2)

@@ -135,6 +135,7 @@ static volatile bool dspEqGaveUp;
 static u32 dspEqEvents;
 static u64 dspEqEventWindowStart;
 static u32 dspEqInstalls, dspEqFixes;
+static u32 dspEqCallsPerSec;
 
 static void DspEq_CountEvent(void)
 {
@@ -248,6 +249,31 @@ static void DspEq_Tick(void)
     }
 }
 
+// Measures how fast the DSP routine's call counter advances (should be about 204 per second)
+static void DspEq_MeasureRate(void)
+{
+    static u64 lastTick;
+    static u16 lastCalls;
+    u64 now = svcGetSystemTick();
+
+    if (now - lastTick < (u64)SYSCLOCK_ARM11)
+        return;
+
+    dspEqCallsPerSec = 0;
+    if (DspEq_IsDspRunning())
+    {
+        volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
+        volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
+        if (prog[DSPEQ_HOOK_A_ADDR] == DSPEQ_HOOK_A_NEW && prog[DSPEQ_HOOK_B_ADDR] == DSPEQ_HOOK_B_NEW)
+        {
+            u16 calls = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CALLS];
+            dspEqCallsPerSec = (u16)(calls - lastCalls);
+            lastCalls = calls;
+        }
+    }
+    lastTick = now;
+}
+
 static void DspEq_ThreadMain(void)
 {
     // The SD card may not be available yet this early in boot: keep trying to load the saved settings for a while
@@ -268,6 +294,7 @@ static void DspEq_ThreadMain(void)
         }
 
         DspEq_Tick();
+        DspEq_MeasureRate();
     }
 }
 
@@ -275,12 +302,14 @@ void DspEq_GetStatus(DspEqStatus *status)
 {
     status->pdnDspCnt = PDN_DSP_CNT;
     status->dspRunning = DspEq_IsDspRunning();
+    status->callsPerSec = dspEqCallsPerSec;
     status->gaveUp = dspEqGaveUp;
     status->installs = dspEqInstalls;
     status->fixes = dspEqFixes;
     status->hookA = 0;
     status->hookB = 0;
     status->magic = 0;
+    status->diagCalls = status->diagR4 = status->diagA = status->diagB = 0;
 
     if (status->dspRunning)
     {
@@ -289,6 +318,10 @@ void DspEq_GetStatus(DspEqStatus *status)
         status->hookA = prog[DSPEQ_HOOK_A_ADDR];
         status->hookB = prog[DSPEQ_HOOK_B_ADDR];
         status->magic = data[DSPEQ_DATA_BASE];
+        status->diagCalls = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CALLS];
+        status->diagR4 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_R4];
+        status->diagA = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_A];
+        status->diagB = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_B];
     }
 }
 
