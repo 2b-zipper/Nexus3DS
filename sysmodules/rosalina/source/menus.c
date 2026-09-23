@@ -37,6 +37,7 @@
 #include "menus/sysconfig.h"
 #include "menus/screen_filters.h"
 #include "menus/plugin_options.h"
+#include "menus/equalizer_menu.h"
 #include "menus/config_extra.h"
 #include "plugin.h"
 #include "pmdbgext.h"
@@ -53,6 +54,7 @@ Menu rosalinaMenu = {
     {
         { "Take screenshot", METHOD, .method = &RosalinaMenu_TakeScreenshot },
         { "Screen filters...", MENU, .menu = &screenFiltersMenu },
+        { "Equalizer...", METHOD, .method = &EqualizerMenu_Show },
         { "Cheats...", METHOD, .method = &RosalinaMenu_Cheats },
         { "", MENU, .menu = &pluginOptionsMenu}, // Plugin loader
         { "New 3DS settings:", MENU, .menu = &N3DSMenu, .visibility = &menuCheckN3ds },

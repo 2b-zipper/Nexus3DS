@@ -39,6 +39,7 @@
 #include "menus/cheats.h"
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
+#include "equalizer.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
@@ -326,6 +327,7 @@ int main(void)
     Draw_Init();
     Cheat_SeedRng(svcGetSystemTick());
     ScreenFiltersMenu_LoadConfig();
+    Equalizer_LoadConfig();
     SysConfigMenu_LoadConfig();
     ConfigExtra_ReadConfigExtra();
     HomeButtonSimMenu_LoadConfig();
