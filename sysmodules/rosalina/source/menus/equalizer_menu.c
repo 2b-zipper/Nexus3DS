@@ -55,7 +55,8 @@ static void EqualizerMenu_FormatBar(char *out, int gainDb)
 static void EqualizerMenu_MemTest(void)
 {
     u32 input, held;
-    DspEq_MemTestArm();
+    if (!DspEq_MemTestActive()) // opening the screen again must not reset a running test
+        DspEq_MemTestArm();
 
     do
     {
@@ -66,7 +67,7 @@ static void EqualizerMenu_MemTest(void)
         posY = Draw_DrawString(20, posY, COLOR_WHITE, "Marker patterns are written to DSP memory.\n");
         posY = Draw_DrawString(20, posY, COLOR_WHITE, "Leave (B), use the console for a minute\n");
         posY = Draw_DrawString(20, posY, COLOR_WHITE, "(sounds, volume, apps), then come back here.\n");
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Y: restart the test.  Changes per block:\n") + SPACING_Y;
+        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Y: restart (resets counts). Changes per block:\n") + SPACING_Y;
 
         for (u32 r = 0; r < DSPEQ_MEMTEST_REGIONS; r++)
         {
