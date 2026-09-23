@@ -111,6 +111,21 @@ static Result DspProbe_WriteFile(const char *path, const void *data, u32 size)
     return res;
 }
 
+// Attaching a debug handle halts the process until its debug events are acknowledged;
+// without this the target (e.g. dsp) stays frozen after we detach.
+static void DspProbe_ResumeDebugged(Handle debug)
+{
+    DebugEventInfo info;
+    while (svcWaitSynchronization(debug, 0) == 0 && R_SUCCEEDED(svcGetProcessDebugEvent(&info, debug)))
+    {
+        if (info.flags & 1)
+            svcContinueDebugEvent(debug, (DebugFlags)0);
+    }
+
+    // Same approach as the GDB stub before detaching: resume until nothing is left to continue
+    while (R_SUCCEEDED(svcContinueDebugEvent(debug, (DebugFlags)0)));
+}
+
 // Fallback for regions svcMapProcessMemoryEx refuses (IO/STATIC, e.g. DSP RAM): copy them
 // through a debug handle in small chunks instead.
 static Result DspProbe_DumpViaDebug(u32 pid, u32 address, u32 size, const char *path)
@@ -121,6 +136,8 @@ static Result DspProbe_DumpViaDebug(u32 pid, u32 address, u32 size, const char *
     Result res = svcDebugActiveProcess(&debug, pid);
     if (R_FAILED(res))
         return res;
+
+    DspProbe_ResumeDebugged(debug);
 
     IFile file;
     u64 total;
@@ -136,6 +153,7 @@ static Result DspProbe_DumpViaDebug(u32 pid, u32 address, u32 size, const char *
     }
 
     IFile_Close(&file);
+    DspProbe_ResumeDebugged(debug);
     svcCloseHandle(debug);
     return res;
 }
