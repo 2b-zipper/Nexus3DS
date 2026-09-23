@@ -46,7 +46,10 @@ typedef struct DspEqStatus {
     u16 diagCalls;      // how many times the DSP routine ran since the patch was installed
     u16 diagR4;         // buffer pointer it received the last time
     u16 diagA, diagB;   // calls through the plain copy / soft clipping output path
-    u32 callsPerSec;    // measured rate of diagCalls (about 204 when everything runs normally)
+    u32 callsPerSec;    // measured rate of diagCalls (about 204 when everything runs normally); 0 while the system is paused
+    u32 peakCallsPerSec;// highest rate seen so far
+    u16 diagIdx0, diagIdx1; // output read index when the routine started / finished (16 words = 0.24 ms)
+    u16 droppedA, droppedB; // firmware's own dropped-frame counter in the two shared frame buffers
     u16 magic;          // parameter block magic (valid if dspRunning)
 } DspEqStatus;
 

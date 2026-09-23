@@ -121,7 +121,8 @@ void EqualizerMenu_Show(void)
             (st.hookA == DSPEQ_HOOK_A_ORIG && st.hookB == DSPEQ_HOOK_B_ORIG) ? "not applied yet" : "unsupported DSP firmware";
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "DSP: %-24s\n", state);
         Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
-        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "dsp: calls %u (%lu/s) r4 %04x A%u B%u\n", st.diagCalls, st.callsPerSec, st.diagR4, st.diagA, st.diagB);
+        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u\n", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB);
+        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "idx %04x>%04x drop %u/%u\n", st.diagIdx0, st.diagIdx1, st.droppedA, st.droppedB);
 
         Draw_FlushFramebuffer();
         Draw_Unlock();

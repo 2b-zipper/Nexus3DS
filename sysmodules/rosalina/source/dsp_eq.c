@@ -135,7 +135,7 @@ static volatile bool dspEqGaveUp;
 static u32 dspEqEvents;
 static u64 dspEqEventWindowStart;
 static u32 dspEqInstalls, dspEqFixes;
-static u32 dspEqCallsPerSec;
+static u32 dspEqCallsPerSec, dspEqPeakCallsPerSec;
 
 static void DspEq_CountEvent(void)
 {
@@ -268,6 +268,8 @@ static void DspEq_MeasureRate(void)
         {
             u16 calls = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CALLS];
             dspEqCallsPerSec = (u16)(calls - lastCalls);
+            if (dspEqCallsPerSec > dspEqPeakCallsPerSec && dspEqCallsPerSec < 1000)
+                dspEqPeakCallsPerSec = dspEqCallsPerSec;
             lastCalls = calls;
         }
     }
@@ -303,6 +305,8 @@ void DspEq_GetStatus(DspEqStatus *status)
     status->pdnDspCnt = PDN_DSP_CNT;
     status->dspRunning = DspEq_IsDspRunning();
     status->callsPerSec = dspEqCallsPerSec;
+    status->peakCallsPerSec = dspEqPeakCallsPerSec;
+    status->diagIdx0 = status->diagIdx1 = status->droppedA = status->droppedB = 0;
     status->gaveUp = dspEqGaveUp;
     status->installs = dspEqInstalls;
     status->fixes = dspEqFixes;
@@ -322,6 +326,10 @@ void DspEq_GetStatus(DspEqStatus *status)
         status->diagR4 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_R4];
         status->diagA = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_A];
         status->diagB = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_B];
+        status->diagIdx0 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_IDX0];
+        status->diagIdx1 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_IDX1];
+        status->droppedA = data[0x8401];    // DspStatus.dropped_frames of the two shared frame buffers
+        status->droppedB = data[0x18401];
     }
 }
 

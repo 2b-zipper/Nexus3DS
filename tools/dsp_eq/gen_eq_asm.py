@@ -18,6 +18,9 @@ DIAG_CALLS = EQ + 0x70   # number of times the routine ran
 DIAG_R4 = EQ + 0x71      # buffer pointer (r4) it received the last time
 DIAG_A = EQ + 0x72       # calls through the plain copy path
 DIAG_B = EQ + 0x73       # calls through the soft clipping path
+DIAG_IDX0 = EQ + 0x74    # firmware's output read index ([0x07ec], advances 16 words per 0.24 ms) when the routine started ...
+DIAG_IDX1 = EQ + 0x75    # ... and when it finished (the difference is how long the equalizer took)
+RING_IDX = 0x07EC
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
@@ -72,6 +75,8 @@ def gen():
     bump(DIAG_CALLS)
     a.ins('mov r4 a0')
     a.ins('mov a0l [0x$%04x]' % DIAG_R4, 2)
+    a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
+    a.ins('mov a0l [0x$%04x]' % DIAG_IDX0, 2)
     a.ins('mov [0x$%04x] a0' % EQ, 2)
     a.ins('cmpv 0x$%04x a0l' % MAGIC, 2)
     a.ins('br 0x0000$@DONE@ neq', 2)
@@ -115,6 +120,8 @@ def gen():
             a.ins('modr [r1++]')                                   # skip the other channel
             a.label(lbl)                                           # label after last instruction
     a.label('DONE')
+    a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
+    a.ins('mov a0l [0x$%04x]' % DIAG_IDX1, 2)
     a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r2'); a.ins('pop r1'); a.ins('pop r0')
     a.ins('ret always')
     return a
