@@ -54,5 +54,9 @@ void Equalizer_Reset(void);
 // Computes the filter coefficients of a band for the current gain
 EqBiquad Equalizer_GetBiquad(EqBand band);
 
+// Coefficients in the layout the DSP routine expects: per band [b0, b1, b2, -a1, -a2, -a1, -a2], Q12
+#define EQ_DSP_WORDS_PER_BAND   7
+void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND]);
+
 Result Equalizer_SaveConfig(void);
 void Equalizer_LoadConfig(void);

@@ -32,11 +32,11 @@
 #include "utils.h"
 
 #define EQ_SAMPLE_RATE  32728.0f // DSP output rate
-#define EQ_BASS_FREQ    200.0f   // low shelf corner
-#define EQ_MIDS_FREQ    1000.0f  // peaking center
+#define EQ_BASS_MID_HZ  200.0f   // bass shelf midpoint (half of the total gain, in dB)
+#define EQ_MIDS_HZ      1000.0f  // peaking filter center
 #define EQ_MIDS_Q       0.7071f
-#define EQ_HIGHS_FREQ   4000.0f  // high shelf corner
-#define EQ_SHELF_S      1.0f     // shelf slope
+#define EQ_HIGH_MID_HZ  4000.0f  // high shelf midpoint
+#define EQ_DSP_QBITS    12       // fractional bits of the DSP coefficients
 
 s8 equalizerGains[EQ_BAND_COUNT];
 
@@ -61,7 +61,48 @@ void Equalizer_Reset(void)
         equalizerGains[i] = 0;
 }
 
-// Coefficients from the RBJ Audio EQ Cookbook
+// First-order shelf, expressed as a biquad with b2 = a2 = 0. The pole/zero pair is placed symmetrically around the
+// midpoint frequency, so a shelf of X dB has X/2 dB of gain at the midpoint. Cuts are the inverse of the matching boost.
+// (A second-order low shelf at 200 Hz would need more coefficient precision than the 16-bit DSP arithmetic gives.)
+static EqBiquad Equalizer_DesignShelf(bool low, int gainDb, float midHz)
+{
+    float v0 = powf(10.0f, (gainDb < 0 ? -gainDb : gainDb) / 20.0f);
+    float kMid = tanf((float)M_PI * midHz / EQ_SAMPLE_RATE);
+    float k = low ? kMid / sqrtf(v0) : kMid * sqrtf(v0);
+    float a1 = (k - 1.0f) / (k + 1.0f);
+    float b0, b1;
+
+    if (low)
+    {
+        b0 = (1.0f + v0 * k) / (1.0f + k);
+        b1 = (v0 * k - 1.0f) / (1.0f + k);
+    }
+    else
+    {
+        b0 = (v0 + k) / (1.0f + k);
+        b1 = (k - v0) / (1.0f + k);
+    }
+
+    EqBiquad out;
+    if (gainDb < 0)
+        out = (EqBiquad){1.0f / b0, a1 / b0, 0.0f, b1 / b0, 0.0f};
+    else
+        out = (EqBiquad){b0, b1, 0.0f, a1, 0.0f};
+    return out;
+}
+
+// RBJ Audio EQ Cookbook peaking filter
+static EqBiquad Equalizer_DesignPeak(int gainDb, float hz, float q)
+{
+    float a = powf(10.0f, gainDb / 40.0f);
+    float w0 = 2.0f * (float)M_PI * hz / EQ_SAMPLE_RATE;
+    float alpha = sinf(w0) / (2.0f * q);
+    float c = cosf(w0);
+    float a0 = 1.0f + alpha / a;
+
+    return (EqBiquad){(1.0f + alpha * a) / a0, -2.0f * c / a0, (1.0f - alpha * a) / a0, -2.0f * c / a0, (1.0f - alpha / a) / a0};
+}
+
 EqBiquad Equalizer_GetBiquad(EqBand band)
 {
     static const EqBiquad flat = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -69,52 +110,31 @@ EqBiquad Equalizer_GetBiquad(EqBand band)
     if (band >= EQ_BAND_COUNT || equalizerGains[band] == 0)
         return flat;
 
-    float A = powf(10.0f, equalizerGains[band] / 40.0f);
-    float b0, b1, b2, a0, a1, a2;
-
-    if (band == EQ_BAND_MIDS)
+    switch (band)
     {
-        float w0 = 2.0f * (float)M_PI * EQ_MIDS_FREQ / EQ_SAMPLE_RATE;
-        float alpha = sinf(w0) / (2.0f * EQ_MIDS_Q);
-        float cw = cosf(w0);
-
-        b0 = 1.0f + alpha * A;
-        b1 = -2.0f * cw;
-        b2 = 1.0f - alpha * A;
-        a0 = 1.0f + alpha / A;
-        a1 = -2.0f * cw;
-        a2 = 1.0f - alpha / A;
+        case EQ_BAND_BASS:  return Equalizer_DesignShelf(true, equalizerGains[band], EQ_BASS_MID_HZ);
+        case EQ_BAND_MIDS:  return Equalizer_DesignPeak(equalizerGains[band], EQ_MIDS_HZ, EQ_MIDS_Q);
+        default:            return Equalizer_DesignShelf(false, equalizerGains[band], EQ_HIGH_MID_HZ);
     }
-    else
+}
+
+static u16 Equalizer_ToQ(float v)
+{
+    s32 r = (s32)floorf(v * (float)(1 << EQ_DSP_QBITS) + 0.5f);
+    return (u16)(s16)CLAMP(r, -32768, 32767);
+}
+
+void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND])
+{
+    for (int band = 0; band < EQ_BAND_COUNT; band++)
     {
-        bool low = band == EQ_BAND_BASS;
-        float w0 = 2.0f * (float)M_PI * (low ? EQ_BASS_FREQ : EQ_HIGHS_FREQ) / EQ_SAMPLE_RATE;
-        float cw = cosf(w0);
-        float alpha = sinf(w0) / 2.0f * sqrtf((A + 1.0f / A) * (1.0f / EQ_SHELF_S - 1.0f) + 2.0f);
-        float tsa = 2.0f * sqrtf(A) * alpha;
-
-        if (low)
-        {
-            b0 = A * ((A + 1.0f) - (A - 1.0f) * cw + tsa);
-            b1 = 2.0f * A * ((A - 1.0f) - (A + 1.0f) * cw);
-            b2 = A * ((A + 1.0f) - (A - 1.0f) * cw - tsa);
-            a0 = (A + 1.0f) + (A - 1.0f) * cw + tsa;
-            a1 = -2.0f * ((A - 1.0f) + (A + 1.0f) * cw);
-            a2 = (A + 1.0f) + (A - 1.0f) * cw - tsa;
-        }
-        else
-        {
-            b0 = A * ((A + 1.0f) + (A - 1.0f) * cw + tsa);
-            b1 = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cw);
-            b2 = A * ((A + 1.0f) + (A - 1.0f) * cw - tsa);
-            a0 = (A + 1.0f) - (A - 1.0f) * cw + tsa;
-            a1 = 2.0f * ((A - 1.0f) - (A + 1.0f) * cw);
-            a2 = (A + 1.0f) - (A - 1.0f) * cw - tsa;
-        }
+        EqBiquad f = Equalizer_GetBiquad((EqBand)band);
+        out[band][0] = Equalizer_ToQ(f.b0);
+        out[band][1] = Equalizer_ToQ(f.b1);
+        out[band][2] = Equalizer_ToQ(f.b2);
+        out[band][3] = out[band][5] = Equalizer_ToQ(-f.a1); // the DSP sums products, so it stores -a1/-a2 ...
+        out[band][4] = out[band][6] = Equalizer_ToQ(-f.a2); // ... once for the high and once for the low half of y
     }
-
-    EqBiquad out = {b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0};
-    return out;
 }
 
 #define EQ_CONFIG_PATH  "/luma/equalizer.bin"

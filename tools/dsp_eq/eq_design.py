@@ -33,8 +33,13 @@ def _peak(gain_db, fc, q):
     d = [1 + al / a, -2 * c, 1 - al / a]
     return [b[0] / d[0], b[1] / d[0], b[2] / d[0], d[1] / d[0], d[2] / d[0]]
 
+FLAT = [1.0, 0.0, 0.0, 0.0, 0.0]
+
 def design(bass_db, mids_db, high_db):
-    return [_shelf(True, bass_db, BASS_HZ), _peak(mids_db, MIDS_HZ, MIDS_Q), _shelf(False, high_db, HIGH_HZ)]
+    """a band at 0 dB is an exact pass-through"""
+    return [_shelf(True, bass_db, BASS_HZ) if bass_db else list(FLAT),
+            _peak(mids_db, MIDS_HZ, MIDS_Q) if mids_db else list(FLAT),
+            _shelf(False, high_db, HIGH_HZ) if high_db else list(FLAT)]
 
 def q(v):
     r = int(round(v * (1 << QBITS)))
