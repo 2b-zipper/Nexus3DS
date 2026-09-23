@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
+#include <stdint.h>
 typedef uint8_t u8; typedef uint16_t u16; typedef uint32_t u32; typedef uint64_t u64;
 typedef int8_t s8; typedef int16_t s16; typedef int32_t s32; typedef int64_t s64;
 typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
@@ -25,3 +26,5 @@ enum { PATH_EMPTY, PATH_ASCII };
 #define FS_OPEN_CREATE 4
 static inline FS_Path fsMakePath(int t, const void *d) { (void)d; FS_Path p = {t}; return p; }
 #define CORE_SYSTEM 1
+#define SYSCLOCK_ARM11 268111856LL
+static inline u64 svcGetSystemTick(void) { static u64 t; t += 268111856ULL / 10; return t; }

@@ -4,7 +4,8 @@
 // usage: harness dspfirm.cdc <frames> [<prefix>]
 // env:   EQ_AMP tone amplitude, EQ_K tone cycles per 4096 samples, EQ_L / EQ_R voice L/R gain,
 //        EQ_POKE file with "addr(hex) value(hex)" lines written to DSP data memory (word addresses) after boot,
-//        EQ_VOICES number of voices, EQ_FX enable aux/effects, EQ_BQ enable a voice biquad filter
+//        EQ_REAL use the master configuration of a real console (3 output buffers, soft clipping), EQ_CLIP clipping mode,
+//        EQ_MODE output mode, EQ_VOICES number of voices, EQ_FX enable aux/effects, EQ_BQ enable a voice biquad filter
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -214,6 +215,11 @@ int main(int argc, char** argv) {
             set16(m, 40, 1); set16(m, 42, 1); set16(m, 36, 0); set16(m, 38, 0);
             setf(m, 8, 1.0f); setf(m, 12, 1.0f);
             for (int i = 0; i < 2; ++i) { set16(m, 44 + i * 20, 1); set16(m, 84 + i * 52, 1); }
+        }
+        if (getenv("EQ_REAL")) {   // master configuration as seen on a real console (HOME Menu, soft clipping, 3 output buffers)
+            mf |= 0x20000000 | 0x40000000 | 0x80000000;
+            set16(m, 16, 3); set16(m, 22, 1); set16(m, 24, 1); set16(m, 26, 0);
+            set16(m, 28, 0x7FFF); set16(m, 30, 0); set16(m, 34, 0x8000);
         }
         set32(m, 0, mf);
         if (!voiceSet && fr >= 2) {

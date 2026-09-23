@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.dirname(__file__) or '.')
 import eq_design as ed
 S = os.environ.get('DSPEQ_WORK', '.')
 H = os.environ.get('DSPEQ_HARNESS', './harness')
-EQ = 0xD200
+EQ = 0x8100
 
 def poke_file(gains, path):
     words = ed.dsp_words(ed.design(*gains))

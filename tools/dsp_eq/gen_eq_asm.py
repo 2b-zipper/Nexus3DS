@@ -9,7 +9,7 @@ ring buffer (r4 = its start) in place: 3 cascaded biquad sections x 2 channels, 
 import sys
 
 CODE_BASE = 0x1000        # program memory address of the new segment (free area 0xF2E..0x28FF)
-EQ = 0xD200               # data memory block (words): verified free on a real console dump + emulator runs
+EQ = 0x8100               # data memory block (words): padding at the start of the DSP shared frame block
 MAGIC = 0xE0E1
 CF = lambda band: EQ + 0x10 + 8 * band
 ST = lambda band, ch: EQ + 0x40 + 8 * (band * 2 + ch)

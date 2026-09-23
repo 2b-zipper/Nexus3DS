@@ -46,6 +46,8 @@
 
 #define DSPEQ_POLL_NS       100000000LL
 #define DSPEQ_LOAD_ATTEMPTS 1200                 // 2 minutes of retries
+#define DSPEQ_GIVEUP_EVENTS 5                    // this many installs / lost parameter blocks ...
+#define DSPEQ_GIVEUP_WINDOW (30LL * SYSCLOCK_ARM11) // ... within this many ticks make Rosalina stop patching
 #define DSPEQ_PARAM_COEFS   0x10
 #define DSPEQ_PARAM_STATES  0x40
 #define DSPEQ_STATE_WORDS   48                   // 3 bands x 2 channels x 8
@@ -54,6 +56,27 @@ static MyThread dspEqThread;
 static u8 CTR_ALIGN(8) dspEqThreadStack[0x2000];
 
 static volatile bool dspEqDirty = true;
+
+// Safety net: if the DSP keeps reloading or the parameter block keeps getting lost (i.e. the patch is not
+// behaving), stop patching instead of disturbing the audio over and over. Changing the gains re-arms it.
+static volatile bool dspEqGaveUp;
+static u32 dspEqEvents;
+static u64 dspEqEventWindowStart;
+static u32 dspEqInstalls, dspEqFixes;
+
+static void DspEq_CountEvent(void)
+{
+    u64 now = svcGetSystemTick();
+
+    if (dspEqEvents == 0 || now - dspEqEventWindowStart > (u64)DSPEQ_GIVEUP_WINDOW)
+    {
+        dspEqEventWindowStart = now;
+        dspEqEvents = 0;
+    }
+
+    if (++dspEqEvents >= DSPEQ_GIVEUP_EVENTS)
+        dspEqGaveUp = true;
+}
 
 // The DSP is running (clock on, not in reset) - only then it is safe to access DSP memory
 static bool DspEq_IsDspRunning(void)
@@ -117,8 +140,11 @@ static void DspEq_Tick(void)
     if (hookA == DSPEQ_HOOK_A_ORIG && hookB == DSPEQ_HOOK_B_ORIG)
     {
         // Firmware freshly (re)loaded, not patched
-        if (!wantEq || !DspEq_FirmwareMatches(prog) || !DspEq_CodeAreaIsFree(prog))
+        if (!wantEq || dspEqGaveUp || !DspEq_FirmwareMatches(prog) || !DspEq_CodeAreaIsFree(prog))
             return;
+
+        DspEq_CountEvent();
+        dspEqInstalls++;
 
         for (u32 i = 0; i < DSPEQ_CODE_WORDS; i++)
             prog[DSPEQ_CODE_BASE + i] = dspEqCode[i];
@@ -133,7 +159,19 @@ static void DspEq_Tick(void)
     else if (hookA == DSPEQ_HOOK_A_NEW && hookB == DSPEQ_HOOK_B_NEW && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
     {
         // Patched, settings changed (or the parameter block was lost)
-        DspEq_WriteParams(data, wantEq, wantEq && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC);
+        bool lost = wantEq && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC;
+        if (lost)
+        {
+            DspEq_CountEvent();
+            dspEqFixes++;
+            if (dspEqGaveUp)
+            {
+                data[DSPEQ_DATA_BASE] = 0; // leave the DSP in bypass
+                __dsb();
+                return;
+            }
+        }
+        DspEq_WriteParams(data, wantEq, lost);
         dspEqDirty = false;
     }
 }
@@ -163,6 +201,9 @@ void DspEq_GetStatus(DspEqStatus *status)
 {
     status->pdnDspCnt = PDN_DSP_CNT;
     status->dspRunning = DspEq_IsDspRunning();
+    status->gaveUp = dspEqGaveUp;
+    status->installs = dspEqInstalls;
+    status->fixes = dspEqFixes;
     status->hookA = 0;
     status->hookB = 0;
     status->magic = 0;
@@ -180,6 +221,8 @@ void DspEq_GetStatus(DspEqStatus *status)
 void DspEq_NotifyChanged(void)
 {
     dspEqDirty = true;
+    dspEqGaveUp = false;
+    dspEqEvents = 0;
 }
 
 MyThread *DspEq_CreateThread(void)
