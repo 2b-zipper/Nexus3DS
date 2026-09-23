@@ -30,6 +30,17 @@ DIAG_MOD = EQ + 0x90     # mod0..mod3, stt0..stt2 as received, then mod0 again a
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
+def mac_chain(a):
+    """7 taps of  sum(c[i] * s[i])  with r0 -> coefficients, r4 -> state vector, a0 = signed taps, a1 = low-half taps.
+    The real DSP cannot read two operands from the same memory bank in one instruction (it returned the same word for both),
+    so every multiply reads memory once: the coefficient goes through y0 first."""
+    a.ins('mov [r0++] y0'); a.ins('mpy y0 [r4++] a0')      # P = c0*s0
+    for _ in range(4):
+        a.ins('mov [r0++] y0'); a.ins('mac y0 [r4++] a0')  # a0 += P ; P = c_i*s_i  (i = 1..4)
+    a.ins('mov [r0++] y0'); a.ins('macsu y0 [r4++] a0')    # a0 += P(4) ; P = c5*s5 (s5 = low half of y1: unsigned)
+    a.ins('mov [r0++] y0'); a.ins('macsu y0 [r4++] a1')    # a1 += P(5) ; P = c6*s6
+    a.ins('mac y0 [r4] a1')                                # a1 += P(6)
+
 class Asm:
     def __init__(self, base):
         self.base = base
@@ -105,12 +116,7 @@ def gen():
     a.ins('mov 0x$%04x r0' % TEST_CF, 2)
     a.ins('clr a0 always')
     a.ins('clr a1 always')
-    a.ins('mpy [r4++] [r0++] a0')
-    for _ in range(4):
-        a.ins('mac [r4++] [r0++] a0')
-    a.ins('macus [r4++] [r0++] a0')
-    a.ins('macus [r4++] [r0++] a1')
-    a.ins('mac [r4++] [r0++] a1')
+    mac_chain(a)
     a.ins('mov 0x$%04x r1' % DIAG_T, 2)
     a.ins('mov a0l [r1++]'); a.ins('mov a0h [r1++]')       # t0,t1: a0 after the 5 signed taps + macus
     a.ins('mov a1l [r1++]'); a.ins('mov a1h [r1++]')       # t2,t3: a1 (low taps)
@@ -135,14 +141,7 @@ def gen():
             a.ins('clr a0 always')
             a.ins('clr a1 always')
             # S = [x0, x1, x2, y1h, y2h, y1l, y2l]   C = [b0, b1, b2, -a1, -a2, -a1, -a2]  (Q12)
-            a.ins('mpy [r4++] [r0++] a0')                          # P = b0*x0
-            a.ins('mac [r4++] [r0++] a0')                          # a0 += P ; P = b1*x1
-            a.ins('mac [r4++] [r0++] a0')                          # P = b2*x2
-            a.ins('mac [r4++] [r0++] a0')                          # P = -a1*y1h
-            a.ins('mac [r4++] [r0++] a0')                          # P = -a2*y2h
-            a.ins('macus [r4++] [r0++] a0')                        # a0 += P ; P = -a1*y1l (y1l unsigned)
-            a.ins('macus [r4++] [r0++] a1')                        # a1 += P(-a1*y1l) ; P = -a2*y2l
-            a.ins('mac [r4++] [r0++] a1')                          # a1 += P(-a2*y2l)
+            mac_chain(a)
             a.ins('shfi a1 a1 -0x0010')                            # low-part products are scaled by 2^16
             a.ins('add a1 a0')
             a.ins('shfi a0 a0 +0x0004')                            # Q12 -> Q16: sample in a0h, fraction in a0l
