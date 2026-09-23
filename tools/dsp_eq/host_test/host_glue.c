@@ -27,6 +27,6 @@ void hosttest_status(u8 *dspRam, unsigned *hook, unsigned *magic)
     g_dspRam = dspRam;
     DspEqStatus st;
     DspEq_GetStatus(&st);
-    *hook = st.hookWord;
+    *hook = st.hookA;
     *magic = st.magic;
 }

@@ -84,10 +84,11 @@ static void DspEq_WriteParams(volatile u16 *data, bool wantEq, bool resetStates)
     __dsb();
 }
 
+// Firmware as loaded: the code around the two hooked calls is exactly what the patch was written for
 static bool DspEq_FirmwareMatches(volatile u16 *prog)
 {
-    for (u32 i = 0; i < 9; i++)
-        if (prog[DSPEQ_HOOK_ADDR - 8 + i] != dspEqHookFingerprint[i])
+    for (u32 i = 0; i < sizeof(dspEqFingerprint) / sizeof(dspEqFingerprint[0]); i++)
+        if (prog[DSPEQ_FINGERPRINT_ADDR + i] != dspEqFingerprint[i])
             return false;
     return true;
 }
@@ -110,9 +111,10 @@ static void DspEq_Tick(void)
 
     volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
     volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
-    u16 hook = prog[DSPEQ_HOOK_ADDR];
+    u16 hookA = prog[DSPEQ_HOOK_A_ADDR];
+    u16 hookB = prog[DSPEQ_HOOK_B_ADDR];
 
-    if (hook == DSPEQ_ORIG_TARGET)
+    if (hookA == DSPEQ_HOOK_A_ORIG && hookB == DSPEQ_HOOK_B_ORIG)
     {
         // Firmware freshly (re)loaded, not patched
         if (!wantEq || !DspEq_FirmwareMatches(prog) || !DspEq_CodeAreaIsFree(prog))
@@ -122,11 +124,13 @@ static void DspEq_Tick(void)
             prog[DSPEQ_CODE_BASE + i] = dspEqCode[i];
         __dsb();
         DspEq_WriteParams(data, true, true);
-        prog[DSPEQ_HOOK_ADDR] = DSPEQ_CODE_BASE; // activates the routine
+        // Each hook is a single 16-bit write to the operand of a call, so the running DSP never sees a half-patched instruction
+        prog[DSPEQ_HOOK_A_ADDR] = DSPEQ_HOOK_A_NEW;
+        prog[DSPEQ_HOOK_B_ADDR] = DSPEQ_HOOK_B_NEW;
         __dsb();
         dspEqDirty = false;
     }
-    else if (hook == DSPEQ_CODE_BASE && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
+    else if (hookA == DSPEQ_HOOK_A_NEW && hookB == DSPEQ_HOOK_B_NEW && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
     {
         // Patched, settings changed (or the parameter block was lost)
         DspEq_WriteParams(data, wantEq, wantEq && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC);
@@ -159,14 +163,16 @@ void DspEq_GetStatus(DspEqStatus *status)
 {
     status->pdnDspCnt = PDN_DSP_CNT;
     status->dspRunning = DspEq_IsDspRunning();
-    status->hookWord = 0;
+    status->hookA = 0;
+    status->hookB = 0;
     status->magic = 0;
 
     if (status->dspRunning)
     {
         volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
         volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
-        status->hookWord = prog[DSPEQ_HOOK_ADDR];
+        status->hookA = prog[DSPEQ_HOOK_A_ADDR];
+        status->hookB = prog[DSPEQ_HOOK_B_ADDR];
         status->magic = data[DSPEQ_DATA_BASE];
     }
 }

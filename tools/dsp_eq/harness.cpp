@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
         u8* m = (u8*)vars[4][bufCurId];
         u32 mf; memcpy(&mf, m, 4);
         mf |= 0x10000000 | 0x00010000 | 0x04000000 | 0x08000000 | 0x00008000;
-        setf(m, 4, 1.0f); set16(m, 16, 2); set16(m, 22, getenv("EQ_MODE") ? atoi(getenv("EQ_MODE")) : 1); set16(m, 24, 0); set16(m, 26, 2);
+        setf(m, 4, 1.0f); set16(m, 16, 2); set16(m, 22, getenv("EQ_MODE") ? atoi(getenv("EQ_MODE")) : 1); set16(m, 24, getenv("EQ_CLIP") ? atoi(getenv("EQ_CLIP")) : 0); set16(m, 26, 2);
         // header: headsetConnected at offset 30? keep 0
         if (getenv("EQ_FX") && fr >= 1) {   // aux buses + delay + reverb, aux return volumes
             mf |= 0x100 | 0x200 | 0x40 | 0x80 | 0x1000000 | 0x2000000 | 0x400 | 0x800 | 0x1000 | 0x2000;

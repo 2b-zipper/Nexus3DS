@@ -1,8 +1,10 @@
 """Generates the DSP-side 3-band EQ routine as makedsp1 assembly text.
 
-Hook: the firmware's `call 0x3432` (final mix -> BTDMP ring buffer, 160 stereo s16 frames) at 0x2FEB is redirected to EQ_ENTRY.
-EQ_ENTRY runs the original routine, then (if the EQ block in DSP data memory holds the magic word) filters
-the freshly written ring buffer in place: 3 cascaded biquad sections x 2 channels, direct form I, Q12 coefficients.
+Hook: the firmware writes the final mix (160 stereo s16 frames) into its BTDMP ring buffer either with `call 0x3432`
+(plain copy, at 0x2FEB) or with `call 0x5DB4` (soft clipping, at 0x2FF1; the default clipping mode). The operand of each of those
+two calls is redirected to ENTRY_A / ENTRY_B (a single 16-bit write each, so patching a running DSP is atomic). Both entries run
+the original routine and then BODY, which - if the EQ block in DSP data memory holds the magic word - filters the freshly written
+ring buffer (r4 = its start) in place: 3 cascaded biquad sections x 2 channels, direct form I, Q12 coefficients.
 """
 import sys
 
@@ -11,8 +13,8 @@ EQ = 0xD200               # data memory block (words): verified free on a real c
 MAGIC = 0xE0E1
 CF = lambda band: EQ + 0x10 + 8 * band
 ST = lambda band, ch: EQ + 0x40 + 8 * (band * 2 + ch)
-ORIG_CALL_TARGET = 0x3432
-RETURN_TO = 0x2FED
+HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
+HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
 class Asm:
     def __init__(self, base):
@@ -48,15 +50,18 @@ class Asm:
 
 def gen():
     a = Asm(CODE_BASE)
-    a.label('ENTRY')
-    a.ins('push r2')                               # r2 is live in the caller
-    a.ins('push b0l')                              # destination pointer of the original call (b0 = r4)
-    a.ins('call 0x0000$%04x always' % ORIG_CALL_TARGET, 2)
-    a.ins('pop r2')                                # r2 = start of the freshly written 160-frame stereo buffer
-    a.ins('push r0'); a.ins('push r1'); a.ins('push r4'); a.ins('push y0')
+    a.label('ENTRY_A')
+    a.ins('call 0x0000$%04x always' % HOOK_A[1], 2)
+    a.ins('br 0x0000$@BODY@ always', 2)
+    a.label('ENTRY_B')
+    a.ins('call 0x0000$%04x always' % HOOK_B[1], 2)
+    a.ins('br 0x0000$@BODY@ always', 2)
+    a.label('BODY')                                # r4 = start of the 160-frame stereo buffer just written (both callees preserve it)
+    a.ins('push r0'); a.ins('push r1'); a.ins('push r2'); a.ins('push r4'); a.ins('push y0')
     a.ins('mov [0x$%04x] a0' % EQ, 2)
     a.ins('cmpv 0x$%04x a0l' % MAGIC, 2)
     a.ins('br 0x0000$@DONE@ neq', 2)
+    a.ins('mov r4 r2')
     for band in range(3):
         for ch in range(2):
             lbl = 'L_%d_%d' % (band, ch)
@@ -96,8 +101,7 @@ def gen():
             a.ins('modr [r1++]')                                   # skip the other channel
             a.label(lbl)                                           # label after last instruction
     a.label('DONE')
-    a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r1'); a.ins('pop r0')
-    a.ins('pop r2')
+    a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r2'); a.ins('pop r1'); a.ins('pop r0')
     a.ins('ret always')
     return a
 

@@ -81,10 +81,10 @@ void EqualizerMenu_Show(void)
         DspEqStatus st;
         DspEq_GetStatus(&st);
         const char *state = !st.dspRunning ? "DSP not running" :
-            st.hookWord == DSPEQ_CODE_BASE ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
-            st.hookWord == DSPEQ_ORIG_TARGET ? "not applied yet" : "unsupported DSP firmware";
+            (st.hookA == DSPEQ_HOOK_A_NEW && st.hookB == DSPEQ_HOOK_B_NEW) ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
+            (st.hookA == DSPEQ_HOOK_A_ORIG && st.hookB == DSPEQ_HOOK_B_ORIG) ? "not applied yet" : "unsupported DSP firmware";
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "DSP: %-24s\n", state);
-        Draw_DrawFormattedString(20, posY, COLOR_GRAY, "(pdn %02x, hook %04x, param %04x)\n", st.pdnDspCnt, st.hookWord, st.magic);
+        Draw_DrawFormattedString(20, posY, COLOR_GRAY, "(pdn %02x, hook %04x/%04x, param %04x)\n", st.pdnDspCnt, st.hookA, st.hookB, st.magic);
 
         Draw_FlushFramebuffer();
         Draw_Unlock();

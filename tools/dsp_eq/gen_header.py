@@ -11,7 +11,7 @@ import gen_eq_asm as g
 
 def main():
     makedsp1, out = sys.argv[1], sys.argv[2]
-    a = g.gen()
+    a = g.gen(); a.resolve()
     with tempfile.TemporaryDirectory() as tmp:
         src, dsp1 = os.path.join(tmp, 'eq.asm'), os.path.join(tmp, 'eq.dsp1')
         open(src, 'w').write(a.text())
@@ -24,12 +24,17 @@ def main():
              '#include <3ds/types.h>', '',
              '#define DSPEQ_CODE_BASE      0x%04X   // program memory word address the routine is placed at' % g.CODE_BASE,
              '#define DSPEQ_CODE_WORDS     %d' % len(words),
-             '#define DSPEQ_HOOK_ADDR      0x%04X   // program word holding the operand of the hooked call' % 0x2FEC,
-             '#define DSPEQ_ORIG_TARGET    0x%04X   // original call target (the routine we wrap)' % g.ORIG_CALL_TARGET,
+             '#define DSPEQ_HOOK_A_ADDR    0x%04X   // program word holding the operand of the hooked call (plain copy path)' % g.HOOK_A[0],
+             '#define DSPEQ_HOOK_A_ORIG    0x%04X   // its original value (call target)' % g.HOOK_A[1],
+             '#define DSPEQ_HOOK_A_NEW     0x%04X   // ENTRY_A' % a.labels['ENTRY_A'],
+             '#define DSPEQ_HOOK_B_ADDR    0x%04X   // same for the soft clipping path' % g.HOOK_B[0],
+             '#define DSPEQ_HOOK_B_ORIG    0x%04X' % g.HOOK_B[1],
+             '#define DSPEQ_HOOK_B_NEW     0x%04X   // ENTRY_B' % a.labels['ENTRY_B'],
+             '#define DSPEQ_FINGERPRINT_ADDR 0x2FE4 // first program word of the firmware fingerprint',
              '#define DSPEQ_DATA_BASE      0x%04X   // data memory word address of the parameter block' % g.EQ,
              '#define DSPEQ_MAGIC          0x%04X' % g.MAGIC,
-             '', '// DSP firmware words at DSPEQ_HOOK_ADDR - 8 .. DSPEQ_HOOK_ADDR that identify the supported firmware',
-             'static const u16 dspEqHookFingerprint[9] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0x%04X };' % g.ORIG_CALL_TARGET,
+             '', '// DSP firmware words at DSPEQ_FINGERPRINT_ADDR (the code around the two hooked calls) that identify the supported firmware',
+             'static const u16 dspEqFingerprint[16] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0x%04X, 0x5050, 0x5B24, 0x5E18, 0x3C30, 0x41C0, 0x%04X, 0xD4B8 };' % (g.HOOK_A[1], g.HOOK_B[1]),
              '', 'static const u16 dspEqCode[DSPEQ_CODE_WORDS] = {']
     for i in range(0, len(words), 8):
         lines.append('    ' + ', '.join('0x%04X' % w for w in words[i:i + 8]) + ',')

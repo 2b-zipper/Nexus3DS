@@ -39,7 +39,7 @@ void DspEq_NotifyChanged(void);
 typedef struct DspEqStatus {
     u8 pdnDspCnt;       // raw PDN_DSP_CNT (bit 0: not in reset, bit 1: clock on)
     bool dspRunning;
-    u16 hookWord;       // firmware word holding the hooked call's operand (valid if dspRunning)
+    u16 hookA, hookB;   // operands of the two hooked calls in the firmware (valid if dspRunning)
     u16 magic;          // parameter block magic (valid if dspRunning)
 } DspEqStatus;
 
