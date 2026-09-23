@@ -710,13 +710,11 @@ void menuShow(Menu *root)
     u8 prevVolumeSlider[2] = {0};
     s8 prevVolumeOverride = currVolumeSliderOverride;
     bool firstRun = true;
-    u32 updateCounter = 0;
 
     do
     {
         u32 pressed = waitInputWithTimeout(30);
         numItems = menuCountItems(currentMenu);
-        updateCounter++;
 
         if (firstRun || currVolumeSliderOverride != prevVolumeOverride)
         {
