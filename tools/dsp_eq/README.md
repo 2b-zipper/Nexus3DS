@@ -40,3 +40,16 @@ DSPEQ_WORK=. DSPEQ_HARNESS=./harness python3 regress.py fw_eq.cdc     # 96 point
 ```
 
 `patch_fw.py` output is only for the emulator: the signature of a modified firmware image is not valid.
+
+## Testing the Rosalina code itself
+
+`host_test/` compiles the real `equalizer.c` and `dsp_eq.c` for the PC (with stand-ins for the 3DS headers, and the DSP RAM /
+PDN register replaced by host buffers). Linked into the harness (`-DDSPEQ_HOST_GLUE`) it patches the *unmodified*
+firmware while it is running in the emulator, exactly like Rosalina does on a console:
+
+```
+gcc -c -Ihost_test/stubs -I../../sysmodules/rosalina/include host_test/host_glue.c -o host_glue.o
+g++ -std=c++17 -O2 -DDSPEQ_HOST_GLUE -I<teakra>/include harness.cpp host_glue.o <teakra-build>/src/libteakra.a -o harness_live
+# gains bass,mids,high@frame; several changes separated by ';'
+EQ_AMP=1500 EQ_K=128 EQ_LIVE="12,0,-12@60;-6,10,5@180" ./harness_live dspfirm.cdc 330 out
+```

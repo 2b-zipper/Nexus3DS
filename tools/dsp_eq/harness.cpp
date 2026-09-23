@@ -13,6 +13,9 @@
 #include <vector>
 #include <teakra/teakra.h>
 
+#ifdef DSPEQ_HOST_GLUE   // link host_test/host_glue.c: runs the real Rosalina equalizer code against the emulated DSP RAM
+extern "C" { void hosttest_set_gains(int, int, int); void hosttest_tick(unsigned char*); void hosttest_status(unsigned char*, unsigned*, unsigned*); }
+#endif
 using u8 = uint8_t; using u16 = uint16_t; using u32 = uint32_t;
 
 static constexpr u32 DataOff = 0x40000;
@@ -175,7 +178,26 @@ int main(int argc, char** argv) {
     }
     bool voiceSet = false;
     int lastPrintSamples = 0;
+#ifdef DSPEQ_HOST_GLUE
+    // EQ_LIVE="b,m,h@frame[;b,m,h@frame...]": set gains at that frame; hosttest_tick() runs every 20 frames (~100 ms)
+    int liveB[8], liveM[8], liveH[8], liveF[8], nLive = 0;
+    if (getenv("EQ_LIVE")) {
+        char* e = strdup(getenv("EQ_LIVE"));
+        for (char* tok = strtok(e, ";"); tok && nLive < 8; tok = strtok(nullptr, ";"), ++nLive)
+            sscanf(tok, "%d,%d,%d@%d", &liveB[nLive], &liveM[nLive], &liveH[nLive], &liveF[nLive]);
+    }
+    bool liveTicking = false;
+#endif
     for (int fr = 0; fr < frames; ++fr) {
+#ifdef DSPEQ_HOST_GLUE
+        for (int q = 0; q < nLive; ++q)
+            if (fr == liveF[q]) { hosttest_set_gains(liveB[q], liveM[q], liveH[q]); liveTicking = true; }
+        if (liveTicking && fr % 20 == 0) {
+            hosttest_tick(T->GetDspMemory());
+            unsigned hook, magic; hosttest_status(T->GetDspMemory(), &hook, &magic);
+            if (fr % 100 == 0) printf("live frame %d: hook %04x magic %04x\n", fr, hook, magic);
+        }
+#endif
         if (!WaitIrq()) { printf("frame %d: no irq\n", fr); break; }
         u16 counter = get16((u8*)vars[0][(~frameId) & 1], 0);
         if (counter) {
@@ -185,7 +207,7 @@ int main(int argc, char** argv) {
         u8* m = (u8*)vars[4][bufCurId];
         u32 mf; memcpy(&mf, m, 4);
         mf |= 0x10000000 | 0x00010000 | 0x04000000 | 0x08000000 | 0x00008000;
-        setf(m, 4, 1.0f); set16(m, 16, 2); set16(m, 22, 1); set16(m, 24, 0); set16(m, 26, 2);
+        setf(m, 4, 1.0f); set16(m, 16, 2); set16(m, 22, getenv("EQ_MODE") ? atoi(getenv("EQ_MODE")) : 1); set16(m, 24, 0); set16(m, 26, 2);
         // header: headsetConnected at offset 30? keep 0
         if (getenv("EQ_FX") && fr >= 1) {   // aux buses + delay + reverb, aux return volumes
             mf |= 0x100 | 0x200 | 0x40 | 0x80 | 0x1000000 | 0x2000000 | 0x400 | 0x800 | 0x1000 | 0x2000;
