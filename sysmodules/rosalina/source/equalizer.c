@@ -39,12 +39,14 @@
 #define EQ_DSP_QBITS    12       // fractional bits of the DSP coefficients
 
 s8 equalizerGains[EQ_BAND_COUNT];
+static bool equalizerConfigDone; // saved settings were loaded, or the user already changed them
 
 void Equalizer_SetGain(EqBand band, int gainDb)
 {
     if (band >= EQ_BAND_COUNT)
         return;
     equalizerGains[band] = (s8)CLAMP(gainDb, EQ_GAIN_MIN, EQ_GAIN_MAX);
+    equalizerConfigDone = true;
 }
 
 bool Equalizer_IsFlat(void)
@@ -59,6 +61,7 @@ void Equalizer_Reset(void)
 {
     for (int i = 0; i < EQ_BAND_COUNT; i++)
         equalizerGains[i] = 0;
+    equalizerConfigDone = true;
 }
 
 // First-order shelf, expressed as a biquad with b2 = a2 = 0. The pole/zero pair is placed symmetrically around the
@@ -163,21 +166,30 @@ Result Equalizer_SaveConfig(void)
     return res;
 }
 
+bool Equalizer_ConfigDone(void)
+{
+    return equalizerConfigDone;
+}
+
 void Equalizer_LoadConfig(void)
 {
-    Equalizer_Reset();
+    if (equalizerConfigDone)
+        return;
 
     IFile file;
     u64 total;
     EqConfigFile cfg;
     Result res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, EQ_CONFIG_PATH), FS_OPEN_READ);
     if (R_FAILED(res))
-        return;
+        return; // no saved settings yet, or the SD card is not available yet: the caller may retry
 
     res = IFile_Read(&file, &total, &cfg, sizeof(cfg));
     IFile_Close(&file);
 
     if (R_SUCCEEDED(res) && total == sizeof(cfg) && cfg.magic == EQ_CONFIG_MAGIC)
+    {
         for (int i = 0; i < EQ_BAND_COUNT; i++)
             Equalizer_SetGain((EqBand)i, cfg.gains[i]);
+        equalizerConfigDone = true;
+    }
 }

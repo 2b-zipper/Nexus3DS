@@ -45,12 +45,13 @@
 #define PDN_DSP_CNT         (*(vu8 *)PA_PTR(0x10141230)) // bit 0: 0 = reset, bit 1: clock enable
 
 #define DSPEQ_POLL_NS       100000000LL
+#define DSPEQ_LOAD_ATTEMPTS 1200                 // 2 minutes of retries
 #define DSPEQ_PARAM_COEFS   0x10
 #define DSPEQ_PARAM_STATES  0x40
 #define DSPEQ_STATE_WORDS   48                   // 3 bands x 2 channels x 8
 
 static MyThread dspEqThread;
-static u8 CTR_ALIGN(8) dspEqThreadStack[0x1000];
+static u8 CTR_ALIGN(8) dspEqThreadStack[0x2000];
 
 static volatile bool dspEqDirty = true;
 
@@ -135,10 +136,21 @@ static void DspEq_Tick(void)
 
 static void DspEq_ThreadMain(void)
 {
+    // The SD card may not be available yet this early in boot: keep trying to load the saved settings for a while
+    u32 loadAttempts = 0;
+
     while (!preTerminationRequested)
     {
         svcSleepThread(DSPEQ_POLL_NS);
         Sleep__Status(); // waits while the console sleeps
+
+        if (!Equalizer_ConfigDone() && loadAttempts++ < DSPEQ_LOAD_ATTEMPTS)
+        {
+            Equalizer_LoadConfig();
+            if (Equalizer_ConfigDone())
+                dspEqDirty = true;
+        }
+
         DspEq_Tick();
     }
 }

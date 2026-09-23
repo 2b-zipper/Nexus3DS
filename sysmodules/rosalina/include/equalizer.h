@@ -59,4 +59,8 @@ EqBiquad Equalizer_GetBiquad(EqBand band);
 void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND]);
 
 Result Equalizer_SaveConfig(void);
+
+// Loads the saved gains unless they were loaded/changed already. Does nothing if the file cannot be read (yet).
 void Equalizer_LoadConfig(void);
+// true once saved settings were loaded or the gains were changed by the user
+bool Equalizer_ConfigDone(void);
