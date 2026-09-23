@@ -26,6 +26,7 @@
 
 #include <3ds.h>
 #include "menus/miscellaneous.h"
+#include "menus/equalizer_menu.h"
 #include "menus/home_button_sim.h"
 #include "luma_config.h"
 #include "input_redirection.h"
@@ -78,6 +79,7 @@ Menu miscellaneousMenu = {
         {"Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset},
         {"Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm},
         {"Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins},
+        {"Equalizer...", METHOD, .method = &EqualizerMenu_Show},
         {},
     }};
 
