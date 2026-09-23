@@ -18,7 +18,8 @@ This directory holds the routine that does that, plus the tooling to build and t
   because a 200 Hz second-order shelf at 32.7 kHz would need more coefficient precision than 16 bits give.
   The C implementation in `sysmodules/rosalina/source/equalizer.c` must stay in sync with it.
 
-Rosalina (`dsp_eq.c`) applies the patch at runtime: it writes the routine into DSP program memory, changes the call
+Rosalina (`dsp_eq.c`) applies the patch at runtime (DSP RAM is reachable through the kernel extension's physical mapping at
+`0x1FF00000 | 1 << 31`): it writes the routine into DSP program memory, changes the call
 operand (only if the surrounding firmware words match `dspEqHookFingerprint`) and fills the parameter block. The
 `dsp` module rewrites program memory whenever it (re)loads the firmware, so Rosalina re-checks periodically.
 

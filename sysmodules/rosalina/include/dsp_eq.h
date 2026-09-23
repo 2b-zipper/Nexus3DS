@@ -34,3 +34,13 @@ MyThread *DspEq_CreateThread(void);
 
 // Call after the gains changed
 void DspEq_NotifyChanged(void);
+
+// Short description of the DSP patch state, for the equalizer menu
+typedef struct DspEqStatus {
+    u8 pdnDspCnt;       // raw PDN_DSP_CNT (bit 0: not in reset, bit 1: clock on)
+    bool dspRunning;
+    u16 hookWord;       // firmware word holding the hooked call's operand (valid if dspRunning)
+    u16 magic;          // parameter block magic (valid if dspRunning)
+} DspEqStatus;
+
+void DspEq_GetStatus(DspEqStatus *status);

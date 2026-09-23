@@ -32,6 +32,7 @@
 #include "csvc.h"
 #include "menu.h"
 #include "sleep.h"
+#include "utils.h"
 
 // The DSP mixes and outputs all audio itself, so the equalizer runs inside the DSP firmware (see tools/dsp_eq/):
 // a small routine is written into free DSP program memory and the firmware's final-mix call is redirected to it.
@@ -39,9 +40,9 @@
 // Nothing is touched while all gains are 0 dB and no patch is installed.
 
 #define DSP_RAM_BASE        0x1FF00000u
-#define DSP_RAM_SIZE        0x80000u
 #define DSP_DATA_OFFSET     0x40000u
-#define PDN_DSP_CNT         (*(vu8 *)0x10141230) // bit 0: 0 = reset, bit 1: clock enable
+// Physical memory is accessible through PA_PTR() (the kernel extension maps it uncached at PA | 1 << 31)
+#define PDN_DSP_CNT         (*(vu8 *)PA_PTR(0x10141230)) // bit 0: 0 = reset, bit 1: clock enable
 
 #define DSPEQ_POLL_NS       100000000LL
 #define DSPEQ_PARAM_COEFS   0x10
@@ -52,13 +53,6 @@ static MyThread dspEqThread;
 static u8 CTR_ALIGN(8) dspEqThreadStack[0x1000];
 
 static volatile bool dspEqDirty = true;
-
-static bool DspEq_IsRamMapped(void)
-{
-    MemInfo mi;
-    PageInfo pi;
-    return R_SUCCEEDED(svcQueryMemory(&mi, &pi, DSP_RAM_BASE)) && mi.state != MEMSTATE_FREE && mi.size >= DSP_RAM_SIZE;
-}
 
 // The DSP is running (clock on, not in reset) - only then it is safe to access DSP memory
 static bool DspEq_IsDspRunning(void)
@@ -113,8 +107,8 @@ static void DspEq_Tick(void)
     if (!DspEq_IsDspRunning())
         return;
 
-    volatile u16 *prog = (volatile u16 *)DSP_RAM_BASE;
-    volatile u16 *data = (volatile u16 *)(DSP_RAM_BASE + DSP_DATA_OFFSET);
+    volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
+    volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
     u16 hook = prog[DSPEQ_HOOK_ADDR];
 
     if (hook == DSPEQ_ORIG_TARGET)
@@ -141,14 +135,27 @@ static void DspEq_Tick(void)
 
 static void DspEq_ThreadMain(void)
 {
-    if (!DspEq_IsRamMapped())
-        return; // no access to DSP RAM (rosalina.rsf memory mapping missing)
-
     while (!preTerminationRequested)
     {
         svcSleepThread(DSPEQ_POLL_NS);
         Sleep__Status(); // waits while the console sleeps
         DspEq_Tick();
+    }
+}
+
+void DspEq_GetStatus(DspEqStatus *status)
+{
+    status->pdnDspCnt = PDN_DSP_CNT;
+    status->dspRunning = DspEq_IsDspRunning();
+    status->hookWord = 0;
+    status->magic = 0;
+
+    if (status->dspRunning)
+    {
+        volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
+        volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
+        status->hookWord = prog[DSPEQ_HOOK_ADDR];
+        status->magic = data[DSPEQ_DATA_BASE];
     }
 }
 

@@ -29,6 +29,7 @@
 #include "menus/equalizer_menu.h"
 #include "equalizer.h"
 #include "dsp_eq.h"
+#include "dsp_eq_code.h"
 #include "draw.h"
 #include "menu.h"
 
@@ -75,7 +76,15 @@ void EqualizerMenu_Show(void)
         }
 
         posY += SPACING_Y;
-        Draw_DrawString(20, posY, COLOR_WHITE, "Range: -24 dB to +24 dB. Press B to exit.\n");
+        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Range: -24 dB to +24 dB. Press B to exit.\n") + SPACING_Y;
+
+        DspEqStatus st;
+        DspEq_GetStatus(&st);
+        const char *state = !st.dspRunning ? "DSP not running" :
+            st.hookWord == DSPEQ_CODE_BASE ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
+            st.hookWord == DSPEQ_ORIG_TARGET ? "not applied yet" : "unsupported DSP firmware";
+        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "DSP: %-24s\n", state);
+        Draw_DrawFormattedString(20, posY, COLOR_GRAY, "(pdn %02x, hook %04x, param %04x)\n", st.pdnDspCnt, st.hookWord, st.magic);
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
