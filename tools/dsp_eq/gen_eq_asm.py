@@ -23,6 +23,7 @@ DIAG_IDX1 = EQ + 0x75    # ... and when it finished (the difference is how long 
 RING_IDX = 0x07EC
 DIAG_CF = EQ + 0x80      # copy of the bass band's 7 coefficient words as the DSP read them ...
 DIAG_ST = EQ + 0x88      # ... and of the bass band's left channel filter state after the last frame
+DIAG_MOD = EQ + 0x90     # mod0..mod3, stt0..stt2 as received, then mod0 again after the product shift was cleared
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
 
@@ -75,6 +76,13 @@ def gen():
     a.label('BODY')                                # r4 = start of the 160-frame stereo buffer just written (both callees preserve it)
     a.ins('push r0'); a.ins('push r1'); a.ins('push r2'); a.ins('push r4'); a.ins('push y0')
     bump(DIAG_CALLS)
+    for i, (enc, reg) in enumerate([('mod0', 'mod0'), ('mod1', 'mod1'), ('mod2', 'mod2'), ('mod3', 'mod3'), ('stt0', 'stt0'), ('stt1', 'stt1'), ('stt2', 'stt2')]):
+        a.ins('mov %s a0l' % reg)
+        a.ins('mov a0l [0x$%04x]' % (DIAG_MOD + i), 2)
+    a.ins('push mod0')                              # the callee sets a product shift (load ps01) - do not depend on it
+    a.ins('load 0x0000 ps01')                       # products unshifted, as the filter maths assumes
+    a.ins('mov mod0 a0l')
+    a.ins('mov a0l [0x$%04x]' % (DIAG_MOD + 7), 2)
     a.ins('mov r4 a0')
     a.ins('mov a0l [0x$%04x]' % DIAG_R4, 2)
     a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
@@ -129,6 +137,7 @@ def gen():
     a.label('DONE')
     a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
     a.ins('mov a0l [0x$%04x]' % DIAG_IDX1, 2)
+    a.ins('pop mod0')
     a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r2'); a.ins('pop r1'); a.ins('pop r0')
     a.ins('ret always')
     return a

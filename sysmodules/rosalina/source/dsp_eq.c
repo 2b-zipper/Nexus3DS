@@ -236,6 +236,8 @@ void DspEq_GetStatus(DspEqStatus *status)
     status->diagIdx0 = status->diagIdx1 = status->droppedA = status->droppedB = 0;
     for (u32 i = 0; i < 7; i++)
         status->diagCf[i] = status->diagSt[i] = 0;
+    for (u32 i = 0; i < 8; i++)
+        status->diagMod[i] = 0;
     status->gaveUp = dspEqGaveUp;
     status->installs = dspEqInstalls;
     status->fixes = dspEqFixes;
@@ -259,6 +261,8 @@ void DspEq_GetStatus(DspEqStatus *status)
         status->diagIdx1 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_IDX1];
         status->droppedA = data[0x8401];    // DspStatus.dropped_frames of the two shared frame buffers
         status->droppedB = data[0x18401];
+        for (u32 i = 0; i < 8; i++)
+            status->diagMod[i] = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_MOD + i];
         for (u32 i = 0; i < 7; i++)
         {
             status->diagCf[i] = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CF + i];

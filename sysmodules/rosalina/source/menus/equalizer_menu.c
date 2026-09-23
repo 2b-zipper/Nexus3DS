@@ -86,7 +86,8 @@ void EqualizerMenu_Show(void)
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "DSP: %-24s\n", state);
         Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u\n", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB);
-        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "idx %04x>%04x drop %u/%u\n", st.diagIdx0, st.diagIdx1, st.droppedA, st.droppedB);
+        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "md %04x %04x %04x %04x > %04x\n", st.diagMod[0], st.diagMod[1], st.diagMod[2], st.diagMod[3], st.diagMod[7]);
+        posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "stt %04x %04x %04x  drop %u/%u\n", st.diagMod[4], st.diagMod[5], st.diagMod[6], st.droppedA, st.droppedB);
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "cf %04x %04x %04x %04x %04x %04x %04x\n", st.diagCf[0], st.diagCf[1], st.diagCf[2], st.diagCf[3], st.diagCf[4], st.diagCf[5], st.diagCf[6]);
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "st %04x %04x %04x %04x %04x %04x %04x\n", st.diagSt[0], st.diagSt[1], st.diagSt[2], st.diagSt[3], st.diagSt[4], st.diagSt[5], st.diagSt[6]);
 

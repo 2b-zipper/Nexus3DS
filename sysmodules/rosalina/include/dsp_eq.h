@@ -52,6 +52,7 @@ typedef struct DspEqStatus {
     u16 droppedA, droppedB; // firmware's own dropped-frame counter in the two shared frame buffers
     u16 diagCf[7];      // the bass band coefficient words as the DSP read them
     u16 diagSt[7];      // the bass band left channel filter state after the last frame
+    u16 diagMod[8];     // mod0-3, stt0-2 at entry of the DSP routine, then mod0 after the product shift was cleared
     u16 magic;          // parameter block magic (valid if dspRunning)
 } DspEqStatus;
 
