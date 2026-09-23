@@ -56,12 +56,3 @@ typedef struct DspEqStatus {
 } DspEqStatus;
 
 void DspEq_GetStatus(DspEqStatus *status);
-
-// Diagnostic: writes marker patterns into candidate DSP memory blocks and counts how often each one gets changed
-// (by the DSP or the audio library) while the console is used. See DspEq_MemTest*.
-#define DSPEQ_MEMTEST_REGIONS 13
-void DspEq_MemTestArm(void);
-u16  DspEq_MemTestRegionAddr(u32 index);      // word address; the last region is in program memory
-bool DspEq_MemTestRegionIsProgram(u32 index);
-u32  DspEq_MemTestChanges(u32 index);         // number of times the marker was found changed (and restored)
-bool DspEq_MemTestActive(void);

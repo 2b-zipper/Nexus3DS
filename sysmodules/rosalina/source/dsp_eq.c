@@ -57,77 +57,6 @@ static u8 CTR_ALIGN(8) dspEqThreadStack[0x2000];
 
 static volatile bool dspEqDirty = true;
 
-static bool DspEq_IsDspRunning(void);
-
-// ---- memory persistence test (diagnostic) ----
-#define MEMTEST_WORDS 16
-static const u16 memtestAddr[DSPEQ_MEMTEST_REGIONS] = {
-    0x8100, 0xD200, 0xD340, 0xCC40, 0xC400, 0xC800, 0xD900, 0xE100, 0xF100, 0xF800, 0xFC00, 0x1500,
-    0x1200 // program memory (inside the code area the equalizer uses, free on a real console)
-};
-static volatile bool memtestActive;
-static bool memtestWritten;
-static u32 memtestChanges[DSPEQ_MEMTEST_REGIONS];
-
-static volatile u16 *DspEq_MemTestRegionPtr(u32 index)
-{
-    u32 base = (index == DSPEQ_MEMTEST_REGIONS - 1) ? DSP_RAM_BASE : DSP_RAM_BASE + DSP_DATA_OFFSET;
-    return (volatile u16 *)PA_PTR(base) + memtestAddr[index];
-}
-
-static u16 DspEq_MemTestMarker(u32 index, u32 i)
-{
-    return (u16)(0x5A00 + index * 0x10 + i);
-}
-
-static void DspEq_MemTestWrite(u32 index)
-{
-    volatile u16 *p = DspEq_MemTestRegionPtr(index);
-    for (u32 i = 0; i < MEMTEST_WORDS; i++)
-        p[i] = DspEq_MemTestMarker(index, i);
-}
-
-static void DspEq_MemTestTick(void)
-{
-    if (!memtestActive || !DspEq_IsDspRunning())
-        return;
-
-    if (!memtestWritten)
-    {
-        for (u32 r = 0; r < DSPEQ_MEMTEST_REGIONS; r++)
-            DspEq_MemTestWrite(r);
-        __dsb();
-        memtestWritten = true;
-        return;
-    }
-
-    for (u32 r = 0; r < DSPEQ_MEMTEST_REGIONS; r++)
-    {
-        volatile u16 *p = DspEq_MemTestRegionPtr(r);
-        bool changed = false;
-        for (u32 i = 0; i < MEMTEST_WORDS; i++)
-            if (p[i] != DspEq_MemTestMarker(r, i))
-                changed = true;
-        if (changed)
-        {
-            memtestChanges[r]++;
-            DspEq_MemTestWrite(r);
-        }
-    }
-}
-
-void DspEq_MemTestArm(void)
-{
-    for (u32 r = 0; r < DSPEQ_MEMTEST_REGIONS; r++)
-        memtestChanges[r] = 0;
-    memtestWritten = false;
-    memtestActive = true;
-}
-
-u16 DspEq_MemTestRegionAddr(u32 index) { return memtestAddr[index]; }
-bool DspEq_MemTestRegionIsProgram(u32 index) { return index == DSPEQ_MEMTEST_REGIONS - 1; }
-u32 DspEq_MemTestChanges(u32 index) { return memtestChanges[index]; }
-bool DspEq_MemTestActive(void) { return memtestActive; }
 
 // Safety net: if the DSP keeps reloading or the parameter block keeps getting lost (i.e. the patch is not
 // behaving), stop patching instead of disturbing the audio over and over. Changing the gains re-arms it.
@@ -283,10 +212,8 @@ static void DspEq_ThreadMain(void)
 
     while (!preTerminationRequested)
     {
-        svcSleepThread(memtestActive ? DSPEQ_POLL_NS / 5 : DSPEQ_POLL_NS);
+        svcSleepThread(DSPEQ_POLL_NS);
         Sleep__Status(); // waits while the console sleeps
-
-        DspEq_MemTestTick();
 
         if (!Equalizer_ConfigDone() && loadAttempts++ < DSPEQ_LOAD_ATTEMPTS)
         {

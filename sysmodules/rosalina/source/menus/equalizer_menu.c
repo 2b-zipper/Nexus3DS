@@ -52,42 +52,6 @@ static void EqualizerMenu_FormatBar(char *out, int gainDb)
     out[3 + 2 * EQ_BAR_CELLS] = '\0';
 }
 
-static void EqualizerMenu_MemTest(void)
-{
-    u32 input, held;
-    if (!DspEq_MemTestActive()) // opening the screen again must not reset a running test
-        DspEq_MemTestArm();
-
-    do
-    {
-        Draw_Lock();
-        Draw_DrawMenuFrame("DSP memory test");
-
-        u32 posY = 40;
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Marker patterns are written to DSP memory.\n");
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Leave (B), use the console for a minute\n");
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "(sounds, volume, apps), then come back here.\n");
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "Y: restart (resets counts). Changes per block:\n") + SPACING_Y;
-
-        for (u32 r = 0; r < DSPEQ_MEMTEST_REGIONS; r++)
-        {
-            u32 x = 20 + (r % 2) * 150;
-            u32 y = posY + (r / 2) * SPACING_Y;
-            u32 changes = DspEq_MemTestChanges(r);
-            Draw_DrawFormattedString(x, y, changes ? COLOR_ORANGE : COLOR_GREEN, "%s%04x %s%lu", DspEq_MemTestRegionIsProgram(r) ? "P" : "D", DspEq_MemTestRegionAddr(r), changes ? "changed " : "ok ", changes);
-        }
-
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-
-        input = waitInputWithTimeoutEx(&held, 300);
-        (void)held;
-        if (input & KEY_Y)
-            DspEq_MemTestArm();
-    }
-    while (!(input & KEY_B) && !menuShouldExit);
-}
-
 void EqualizerMenu_Show(void)
 {
     int pos = 0;
@@ -101,7 +65,7 @@ void EqualizerMenu_Show(void)
 
         u32 posY = 40;
         posY = Draw_DrawString(20, posY, COLOR_WHITE, "Up/down: select band, left/right: +-1 dB.\n");
-        posY = Draw_DrawString(20, posY, COLOR_WHITE, "R: +-6 dB steps, X: reset, Y: DSP memory test.\n") + SPACING_Y;
+        posY = Draw_DrawString(20, posY, COLOR_WHITE, "R: +-6 dB steps, X: reset all bands.\n") + SPACING_Y;
 
         for (int i = 0; i < EQ_BAND_COUNT; i++)
         {
@@ -148,8 +112,6 @@ void EqualizerMenu_Show(void)
             dirty = true;
             DspEq_NotifyChanged();
         }
-        if (input & KEY_Y)
-            EqualizerMenu_MemTest();
         if (input & KEY_X)
         {
             Equalizer_Reset();
