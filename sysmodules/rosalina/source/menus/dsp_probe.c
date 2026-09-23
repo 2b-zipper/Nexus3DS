@@ -42,6 +42,8 @@
 #define PROBE_MAX_DUMPS     8
 #define PROBE_MAX_PROCS     0x40
 #define PROBE_MAPTXT_SIZE   0x3000
+#define PROBE_CHUNK_SIZE    0x1000
+#define PROBE_DEBUG_MIN_IO  0x8000       // IO regions below this are MMIO registers, never read them
 
 typedef struct ProbeProc {
     u32 pid;
@@ -109,6 +111,35 @@ static Result DspProbe_WriteFile(const char *path, const void *data, u32 size)
     return res;
 }
 
+// Fallback for regions svcMapProcessMemoryEx refuses (IO/STATIC, e.g. DSP RAM): copy them
+// through a debug handle in small chunks instead.
+static Result DspProbe_DumpViaDebug(u32 pid, u32 address, u32 size, const char *path)
+{
+    static u8 chunk[PROBE_CHUNK_SIZE];
+
+    Handle debug = 0;
+    Result res = svcDebugActiveProcess(&debug, pid);
+    if (R_FAILED(res))
+        return res;
+
+    IFile file;
+    u64 total;
+    res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, path), FS_OPEN_CREATE | FS_OPEN_WRITE);
+    if (R_SUCCEEDED(res))
+        res = IFile_SetSize(&file, size);
+
+    for (u32 off = 0; R_SUCCEEDED(res) && off < size; off += PROBE_CHUNK_SIZE)
+    {
+        res = svcReadProcessMemory(chunk, debug, address + off, PROBE_CHUNK_SIZE);
+        if (R_SUCCEEDED(res))
+            res = IFile_Write(&file, &total, chunk, PROBE_CHUNK_SIZE, 0);
+    }
+
+    IFile_Close(&file);
+    svcCloseHandle(debug);
+    return res;
+}
+
 static void DspProbe_MakeDir(void)
 {
     FS_Archive archive;
@@ -170,8 +201,18 @@ static int DspProbe_DumpProcess(const ProbeProc *proc, char *status)
                 if (R_SUCCEEDED(wres))
                     dumps++;
             }
-            else
-                len += sprintf(probeMapText + len, " map-failed %08lx", (u32)mres);
+            else if (memi.state == MEMSTATE_STATIC || memi.size >= PROBE_DEBUG_MIN_IO)
+            {
+                sprintf(path, "%s_%08lx.bin", prefix, memi.base_addr);
+                Result dres = DspProbe_DumpViaDebug(proc->pid, memi.base_addr, memi.size, path);
+                len += sprintf(probeMapText + len, " map-failed %08lx, debug-read %s", (u32)mres, R_SUCCEEDED(dres) ? "ok" : "failed");
+                if (R_SUCCEEDED(dres))
+                    dumps++;
+                else
+                    len += sprintf(probeMapText + len, " %08lx", (u32)dres);
+            }
+            else // small IO regions are hardware registers: reading them could have side effects
+                len += sprintf(probeMapText + len, " map-failed %08lx, skipped", (u32)mres);
         }
         len += sprintf(probeMapText + len, "\n");
     }
