@@ -62,6 +62,7 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Detailed screen brightness adjustment - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/83e8d471a377bc6960fae00d6694f5fe86dcca42)*
 * Volume display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/dc636d82492d1e87eb51785fa7f2a98617e7ece9)*
 * N3DS clock + L2 status display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/2dbfa8b5c9b719b7f3056691f54332f42da6de8d)*
+* **3-band equalizer** (bass / mids / highs, -24 dB to +24 dB each) in Rosalina menu → "Miscellaneous options" → "Equalizer...". It runs inside the DSP by patching the audio firmware in memory, so it affects all system and game audio (see [tools/dsp_eq](tools/dsp_eq/README.md))
 
 * Title ID display in System info
 
