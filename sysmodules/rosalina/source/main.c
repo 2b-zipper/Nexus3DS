@@ -40,6 +40,7 @@
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
 #include "equalizer.h"
+#include "dsp_eq.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
@@ -336,6 +337,7 @@ int main(void)
     MyThread *menuThread = menuCreateThread();
     MyThread *taskRunnerThread = taskRunnerCreateThread();
     MyThread *errDispThread = errDispCreateThread();
+    MyThread *dspEqThread = DspEq_CreateThread();
     bootdiagCreateThread();
 
     if (R_FAILED(ServiceManager_Run(services, notifications, NULL)))
@@ -347,6 +349,7 @@ int main(void)
 
     MyThread_Join(taskRunnerThread, -1LL);
     MyThread_Join(errDispThread, -1LL);
+    MyThread_Join(dspEqThread, -1LL);
 
     return 0;
 }

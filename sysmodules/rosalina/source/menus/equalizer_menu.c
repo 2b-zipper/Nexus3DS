@@ -28,6 +28,7 @@
 #include <3ds.h>
 #include "menus/equalizer_menu.h"
 #include "equalizer.h"
+#include "dsp_eq.h"
 #include "draw.h"
 #include "menu.h"
 
@@ -90,16 +91,19 @@ void EqualizerMenu_Show(void)
         {
             Equalizer_SetGain((EqBand)pos, equalizerGains[pos] - step);
             dirty = true;
+            DspEq_NotifyChanged();
         }
         if (input & KEY_RIGHT)
         {
             Equalizer_SetGain((EqBand)pos, equalizerGains[pos] + step);
             dirty = true;
+            DspEq_NotifyChanged();
         }
         if (input & KEY_X)
         {
             Equalizer_Reset();
             dirty = true;
+            DspEq_NotifyChanged();
         }
     }
     while (!(input & (KEY_A | KEY_B)) && !menuShouldExit);

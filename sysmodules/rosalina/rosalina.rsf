@@ -42,6 +42,7 @@ AccessControlInfo:
 
   MemoryMapping:
     - 0x1F000000 - 0x1F5FFFFF                 # VRAM (cached)
+    - 0x1FF00000 - 0x1FF7FFFF                 # DSP RAM (equalizer patches the DSP firmware in place)
 
   IORegisterMapping:
     # We're using the global custom bit31 mapping
