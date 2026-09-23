@@ -23,6 +23,9 @@ DIAG_IDX1 = EQ + 0x75    # ... and when it finished (the difference is how long 
 RING_IDX = 0x07EC
 DIAG_CF = EQ + 0x80      # copy of the bass band's 7 coefficient words as the DSP read them ...
 DIAG_ST = EQ + 0x88      # ... and of the bass band's left channel filter state after the last frame
+DIAG_T = EQ + 0xB0       # self-test results (see below)
+TEST_CF = EQ + 0xA0      # fixed self-test inputs
+TEST_ST = EQ + 0xA8
 DIAG_MOD = EQ + 0x90     # mod0..mod3, stt0..stt2 as received, then mod0 again after the product shift was cleared
 HOOK_A = (0x2FEC, 0x3432)   # (program address of the call operand, original target): plain copy
 HOOK_B = (0x2FF2, 0x5DB4)   # soft clipping
@@ -91,6 +94,33 @@ def gen():
     a.ins('cmpv 0x$%04x a0l' % MAGIC, 2)
     a.ins('br 0x0000$@DONE@ neq', 2)
     a.ins('mov r4 r2')
+    # ---- self-test: the filter's multiply-accumulate chain on fixed inputs, intermediate results stored for Rosalina to show ----
+    for i, w in enumerate([0x1012, 0xF09C, 0x0000, 0x0F76, 0x0000, 0x0F76, 0x0000]):
+        a.ins('mov 0x$%04x a0' % w, 2)
+        a.ins('mov a0l [0x$%04x]' % (TEST_CF + i), 2)
+    for i, w in enumerate([0xFE44, 0xFE44, 0xFE58, 0x0000, 0x0000, 0x8000, 0x0000]):   # x0 x1 x2 y1h y2h y1l y2l
+        a.ins('mov 0x$%04x a0' % w, 2)
+        a.ins('mov a0l [0x$%04x]' % (TEST_ST + i), 2)
+    a.ins('mov 0x$%04x r4' % TEST_ST, 2)
+    a.ins('mov 0x$%04x r0' % TEST_CF, 2)
+    a.ins('clr a0 always')
+    a.ins('clr a1 always')
+    a.ins('mpy [r4++] [r0++] a0')
+    for _ in range(4):
+        a.ins('mac [r4++] [r0++] a0')
+    a.ins('macus [r4++] [r0++] a0')
+    a.ins('macus [r4++] [r0++] a1')
+    a.ins('mac [r4++] [r0++] a1')
+    a.ins('mov 0x$%04x r1' % DIAG_T, 2)
+    a.ins('mov a0l [r1++]'); a.ins('mov a0h [r1++]')       # t0,t1: a0 after the 5 signed taps + macus
+    a.ins('mov a1l [r1++]'); a.ins('mov a1h [r1++]')       # t2,t3: a1 (low taps)
+    a.ins('shfi a1 a1 -0x0010')
+    a.ins('mov a1l [r1++]'); a.ins('mov a1h [r1++]')       # t4,t5: a1 after >> 16
+    a.ins('add a1 a0')
+    a.ins('mov a0l [r1++]'); a.ins('mov a0h [r1++]')       # t6,t7: a0 after adding
+    a.ins('shfi a0 a0 +0x0004')
+    a.ins('lim a0 a0')
+    a.ins('mov a0l [r1++]'); a.ins('mov a0h [r1++]')       # t8,t9: final
     for band in range(3):
         for ch in range(2):
             lbl = 'L_%d_%d' % (band, ch)
