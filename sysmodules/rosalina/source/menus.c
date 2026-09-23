@@ -54,10 +54,10 @@ Menu rosalinaMenu = {
     {
         { "Take screenshot", METHOD, .method = &RosalinaMenu_TakeScreenshot },
         { "Screen filters...", MENU, .menu = &screenFiltersMenu },
-        { "Equalizer...", METHOD, .method = &EqualizerMenu_Show },
         { "Cheats...", METHOD, .method = &RosalinaMenu_Cheats },
         { "", MENU, .menu = &pluginOptionsMenu}, // Plugin loader
         { "New 3DS settings:", MENU, .menu = &N3DSMenu, .visibility = &menuCheckN3ds },
+        { "Equalizer...", METHOD, .method = &EqualizerMenu_Show },
         { "Process list", METHOD, .method = &RosalinaMenu_ProcessList },
         { "Debugger options...", MENU, .menu = &debuggerMenu },
         { "System configuration...", MENU, .menu = &sysconfigMenu },
