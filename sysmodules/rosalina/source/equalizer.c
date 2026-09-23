@@ -21,6 +21,9 @@
 *         author attributions in that material or in the Appropriate Legal
 *         Notices displayed by works containing it.
 *       * Prohibiting misrepresentation of the origin of that material,
+*         or requiring that modified versions of such material be marked in
+*         reasonable ways as different from the original version.
+*/
 
 #include <3ds.h>
 #include <math.h>
@@ -39,7 +42,7 @@ s8 equalizerGains[EQ_BAND_COUNT];
 
 void Equalizer_SetGain(EqBand band, int gainDb)
 {
-    if (band < 0 || band >= EQ_BAND_COUNT)
+    if (band >= EQ_BAND_COUNT)
         return;
     equalizerGains[band] = (s8)CLAMP(gainDb, EQ_GAIN_MIN, EQ_GAIN_MAX);
 }
@@ -63,7 +66,7 @@ EqBiquad Equalizer_GetBiquad(EqBand band)
 {
     static const EqBiquad flat = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
-    if (band < 0 || band >= EQ_BAND_COUNT || equalizerGains[band] == 0)
+    if (band >= EQ_BAND_COUNT || equalizerGains[band] == 0)
         return flat;
 
     float A = powf(10.0f, equalizerGains[band] / 40.0f);
