@@ -110,20 +110,67 @@ static void DspEq_WriteParams(volatile u16 *data, EqProfile profile, bool wantEq
     __dsb();
 }
 
-// Firmware as loaded: the code around the two hooked calls is exactly what the patch was written for
-static bool DspEq_FirmwareMatches(volatile u16 *prog)
+// Where the two hooked calls are in the firmware that is currently loaded (found by searching for the call sequence, because
+// the address differs between firmware versions)
+typedef struct DspEqHooks {
+    u32 patternAddr;    // program address of the matched call sequence
+    u32 addrA, addrB;   // program addresses of the two call operands
+    u16 origA, origB;   // their original values (the routines the calls target)
+} DspEqHooks;
+
+static DspEqHooks dspEqHooks;
+static bool dspEqHooksValid;
+static bool dspEqScanFailed;
+static u64 dspEqLastScan;
+
+static bool DspEq_PatternAt(volatile u16 *prog, u32 addr)
 {
-    for (u32 i = 0; i < sizeof(dspEqFingerprint) / sizeof(dspEqFingerprint[0]); i++)
-        if (prog[DSPEQ_FINGERPRINT_ADDR + i] != dspEqFingerprint[i])
+    for (u32 i = 0; i < DSPEQ_PATTERN_WORDS; i++)
+        if (dspEqPattern[i] != DSPEQ_PATTERN_ANY && prog[addr + i] != dspEqPattern[i])
             return false;
     return true;
 }
 
+static bool DspEq_FindHooks(volatile u16 *prog, DspEqHooks *out)
+{
+    for (u32 addr = DSPEQ_SCAN_FIRST; addr + DSPEQ_PATTERN_WORDS < DSPEQ_SCAN_LAST; addr++)
+    {
+        if (prog[addr] != dspEqPattern[0] || prog[addr + 1] != dspEqPattern[1] || !DspEq_PatternAt(prog, addr))
+            continue;
+
+        out->patternAddr = addr;
+        out->addrA = addr + DSPEQ_PATTERN_A;
+        out->addrB = addr + DSPEQ_PATTERN_B;
+        out->origA = prog[out->addrA];
+        out->origB = prog[out->addrB];
+        return true;
+    }
+    return false;
+}
+
+// Both calls already redirected to the equalizer
+static bool DspEq_HooksPatched(volatile u16 *prog)
+{
+    return dspEqHooksValid && prog[dspEqHooks.addrA] == DSPEQ_HOOK_A_NEW && prog[dspEqHooks.addrB] == DSPEQ_HOOK_B_NEW;
+}
+
+// The firmware as loaded, not patched (same place, same call sequence, same targets as when it was found)
+static bool DspEq_HooksOriginal(volatile u16 *prog)
+{
+    return dspEqHooksValid && DspEq_PatternAt(prog, dspEqHooks.patternAddr)
+        && prog[dspEqHooks.addrA] == dspEqHooks.origA && prog[dspEqHooks.addrB] == dspEqHooks.origB;
+}
+
+// The code area must be empty (or hold this routine from an earlier patch - the two call targets differ between firmware versions)
 static bool DspEq_CodeAreaIsFree(volatile u16 *prog)
 {
     for (u32 i = 0; i < DSPEQ_CODE_WORDS; i++)
+    {
+        if (i == DSPEQ_ENTRY_A_OPERAND || i == DSPEQ_ENTRY_B_OPERAND)
+            continue;
         if (prog[DSPEQ_CODE_BASE + i] != 0 && prog[DSPEQ_CODE_BASE + i] != dspEqCode[i])
             return false;
+    }
     return true;
 }
 
@@ -143,13 +190,29 @@ static void DspEq_Tick(void)
 
     volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
     volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
-    u16 hookA = prog[DSPEQ_HOOK_A_ADDR];
-    u16 hookB = prog[DSPEQ_HOOK_B_ADDR];
 
-    if (hookA == DSPEQ_HOOK_A_ORIG && hookB == DSPEQ_HOOK_B_ORIG)
+    bool patched = DspEq_HooksPatched(prog);
+    bool original = !patched && DspEq_HooksOriginal(prog);
+
+    if (!patched && !original)
+    {
+        // Nothing known about the firmware that is loaded now (first look, or another firmware was loaded): look for
+        // the call sequence, but only if the equalizer is needed, and not more often than every 2 seconds
+        dspEqHooksValid = false;
+        u64 now = svcGetSystemTick();
+        if (wantEq && !dspEqGaveUp && now - dspEqLastScan > 2 * (u64)SYSCLOCK_ARM11)
+        {
+            dspEqLastScan = now;
+            dspEqScanFailed = !DspEq_FindHooks(prog, &dspEqHooks);
+            dspEqHooksValid = !dspEqScanFailed;
+            original = dspEqHooksValid;
+        }
+    }
+
+    if (original)
     {
         // Firmware freshly (re)loaded, not patched
-        if (!wantEq || dspEqGaveUp || !DspEq_FirmwareMatches(prog) || !DspEq_CodeAreaIsFree(prog))
+        if (!wantEq || dspEqGaveUp || !DspEq_CodeAreaIsFree(prog))
             return;
 
         DspEq_CountEvent();
@@ -157,17 +220,19 @@ static void DspEq_Tick(void)
 
         for (u32 i = 0; i < DSPEQ_CODE_WORDS; i++)
             prog[DSPEQ_CODE_BASE + i] = dspEqCode[i];
+        prog[DSPEQ_CODE_BASE + DSPEQ_ENTRY_A_OPERAND] = dspEqHooks.origA; // the entries call the original routines
+        prog[DSPEQ_CODE_BASE + DSPEQ_ENTRY_B_OPERAND] = dspEqHooks.origB;
         __dsb();
         DspEq_WriteParams(data, profile, true, true);
         dspEqMagicSet = true;
         lastProfile = profile;
         // Each hook is a single 16-bit write to the operand of a call, so the running DSP never sees a half-patched instruction
-        prog[DSPEQ_HOOK_A_ADDR] = DSPEQ_HOOK_A_NEW;
-        prog[DSPEQ_HOOK_B_ADDR] = DSPEQ_HOOK_B_NEW;
+        prog[dspEqHooks.addrA] = DSPEQ_HOOK_A_NEW;
+        prog[dspEqHooks.addrB] = DSPEQ_HOOK_B_NEW;
         __dsb();
         dspEqDirty = false;
     }
-    else if (hookA == DSPEQ_HOOK_A_NEW && hookB == DSPEQ_HOOK_B_NEW && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
+    else if (patched && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
     {
         // Patched, settings changed (or the parameter block was lost)
         bool lost = wantEq && dspEqMagicSet && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC;
@@ -205,7 +270,7 @@ static void DspEq_MeasureRate(void)
     {
         volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
         volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
-        if (prog[DSPEQ_HOOK_A_ADDR] == DSPEQ_HOOK_A_NEW && prog[DSPEQ_HOOK_B_ADDR] == DSPEQ_HOOK_B_NEW)
+        if (DspEq_HooksPatched(prog))
         {
             u16 calls = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CALLS];
             dspEqCallsPerSec = (u16)(calls - lastCalls);
@@ -257,6 +322,8 @@ void DspEq_GetStatus(DspEqStatus *status)
     status->fixes = dspEqFixes;
     status->hookA = 0;
     status->hookB = 0;
+    status->hookState = DSPEQ_HOOKS_UNKNOWN;
+    status->hookAddrA = dspEqHooksValid ? dspEqHooks.addrA : 0;
     status->magic = 0;
     status->diagCalls = status->diagR4 = status->diagA = status->diagB = 0;
 
@@ -264,8 +331,13 @@ void DspEq_GetStatus(DspEqStatus *status)
     {
         volatile u16 *prog = (volatile u16 *)PA_PTR(DSP_RAM_BASE);
         volatile u16 *data = (volatile u16 *)PA_PTR(DSP_RAM_BASE + DSP_DATA_OFFSET);
-        status->hookA = prog[DSPEQ_HOOK_A_ADDR];
-        status->hookB = prog[DSPEQ_HOOK_B_ADDR];
+        if (dspEqHooksValid)
+        {
+            status->hookA = prog[dspEqHooks.addrA];
+            status->hookB = prog[dspEqHooks.addrB];
+        }
+        status->hookState = DspEq_HooksPatched(prog) ? DSPEQ_HOOKS_PATCHED : DspEq_HooksOriginal(prog) ? DSPEQ_HOOKS_ORIGINAL :
+            dspEqScanFailed ? DSPEQ_HOOKS_UNSUPPORTED : DSPEQ_HOOKS_UNKNOWN;
         status->magic = data[DSPEQ_DATA_BASE];
         status->diagCalls = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_CALLS];
         status->diagR4 = data[DSPEQ_DATA_BASE + DSPEQ_DIAG_R4];

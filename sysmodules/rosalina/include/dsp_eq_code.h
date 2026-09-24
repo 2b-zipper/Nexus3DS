@@ -5,13 +5,12 @@
 
 #define DSPEQ_CODE_BASE      0x1000   // program memory word address the routine is placed at
 #define DSPEQ_CODE_WORDS     567
-#define DSPEQ_HOOK_A_ADDR    0x2FEC   // program word holding the operand of the hooked call (plain copy path)
-#define DSPEQ_HOOK_A_ORIG    0x3432   // its original value (call target)
-#define DSPEQ_HOOK_A_NEW     0x1000   // ENTRY_A
-#define DSPEQ_HOOK_B_ADDR    0x2FF2   // same for the soft clipping path
-#define DSPEQ_HOOK_B_ORIG    0x5DB4
-#define DSPEQ_HOOK_B_NEW     0x100A   // ENTRY_B
-#define DSPEQ_FINGERPRINT_ADDR 0x2FE4 // first program word of the firmware fingerprint
+#define DSPEQ_HOOK_A_NEW     0x1000   // ENTRY_A: replaces the operand of the call to the plain copy routine
+#define DSPEQ_HOOK_B_NEW     0x100A   // ENTRY_B: same for the soft clipping routine
+#define DSPEQ_ENTRY_A_OPERAND 1      // index in dspEqCode of the operands that must hold the ORIGINAL call targets
+#define DSPEQ_ENTRY_B_OPERAND 11
+#define DSPEQ_SCAN_FIRST     0x2000   // program memory range searched for the call sequence
+#define DSPEQ_SCAN_LAST      0x8000
 #define DSPEQ_DATA_BASE      0x8100   // data memory word address of the parameter block
 #define DSPEQ_MAGIC          0xE0E1
 #define DSPEQ_DIAG_CALLS     0x0070   // word offsets (from DSPEQ_DATA_BASE) of the routine's diagnostic counters
@@ -25,8 +24,14 @@
 #define DSPEQ_DIAG_T         0x00B0
 #define DSPEQ_DIAG_IDX1      0x0075
 
-// DSP firmware words at DSPEQ_FINGERPRINT_ADDR (the code around the two hooked calls) that identify the supported firmware
-static const u16 dspEqFingerprint[16] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0x3432, 0x5050, 0x5B24, 0x5E18, 0x3C30, 0x41C0, 0x5DB4, 0xD4B8 };
+// The audio output code of every supported firmware version contains this call sequence (0xFFFF = any value).
+// Word 8 is the target of the call to the plain copy routine, word 14 the target of the soft clipping call;
+// word 12 is the (version specific) address of the clipping parameters.
+#define DSPEQ_PATTERN_WORDS  16
+#define DSPEQ_PATTERN_ANY    0xFFFF
+#define DSPEQ_PATTERN_A      8
+#define DSPEQ_PATTERN_B      14
+static const u16 dspEqPattern[DSPEQ_PATTERN_WORDS] = { 0x5F20, 0x00A0, 0x5EC4, 0x5E19, 0xC140, 0x5E18, 0xC000, 0x41C0, 0xFFFF, 0x5050, 0x5B24, 0x5E18, 0xFFFF, 0x41C0, 0xFFFF, 0xD4B8 };
 
 static const u16 dspEqCode[DSPEQ_CODE_WORDS] = {
     0x41C0, 0x3432, 0xD4B8, 0x8172, 0x86C0, 0x0001, 0xD4BC, 0x8172,

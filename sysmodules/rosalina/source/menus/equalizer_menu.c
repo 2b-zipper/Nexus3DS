@@ -91,13 +91,14 @@ void EqualizerMenu_Show(void)
         DspEqStatus st;
         DspEq_GetStatus(&st);
         const char *state = st.gaveUp ? "stopped (DSP kept undoing it)" : !st.dspRunning ? "DSP not running" :
-            (st.hookA == DSPEQ_HOOK_A_NEW && st.hookB == DSPEQ_HOOK_B_NEW) ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
-            (st.hookA == DSPEQ_HOOK_A_ORIG && st.hookB == DSPEQ_HOOK_B_ORIG) ? "not applied yet" : "unsupported DSP firmware";
+            st.hookState == DSPEQ_HOOKS_PATCHED ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
+            st.hookState == DSPEQ_HOOKS_ORIGINAL ? "not applied yet" :
+            st.hookState == DSPEQ_HOOKS_UNSUPPORTED ? "unsupported DSP firmware" : "idle";
         posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "DSP: %-24s\n", state);
 
         if (showDiag)
         {
-            posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
+            posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook@%04lx %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookAddrA, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u\n", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB);
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "t %04x %04x %04x %04x %04x\n", st.diagT[0], st.diagT[1], st.diagT[2], st.diagT[3], st.diagT[4]);
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "t %04x %04x %04x %04x %04x  d%u/%u\n", st.diagT[5], st.diagT[6], st.diagT[7], st.diagT[8], st.diagT[9], st.droppedA, st.droppedB);

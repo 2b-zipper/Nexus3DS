@@ -36,7 +36,16 @@ MyThread *DspEq_CreateThread(void);
 void DspEq_NotifyChanged(void);
 
 // Short description of the DSP patch state, for the equalizer menu
+typedef enum DspEqHookState {
+    DSPEQ_HOOKS_UNKNOWN,     // not looked at yet (nothing to do while all gains are 0 dB)
+    DSPEQ_HOOKS_ORIGINAL,    // supported firmware found, not patched yet
+    DSPEQ_HOOKS_PATCHED,
+    DSPEQ_HOOKS_UNSUPPORTED  // the audio output call sequence was not found in this firmware version
+} DspEqHookState;
+
 typedef struct DspEqStatus {
+    DspEqHookState hookState;
+    u32 hookAddrA;      // program address of the first hooked call operand (0 if unknown)
     u8 pdnDspCnt;       // raw PDN_DSP_CNT (bit 0: not in reset, bit 1: clock on)
     bool dspRunning;
     bool gaveUp;        // patching was stopped because it kept being undone (see dsp_eq.c)
