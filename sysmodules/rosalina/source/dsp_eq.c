@@ -122,6 +122,7 @@ static DspEqHooks dspEqHooks;
 static bool dspEqHooksValid;
 static bool dspEqScanFailed;      // "unsupported": the search failed several times in a row
 static u32 dspEqScanFailures;
+static bool dspEqCodeBusy;        // the code area is occupied by something else, the patch cannot be installed
 #define DSPEQ_SCAN_FAILURES_UNSUPPORTED 3 // a search can fail while the firmware is still being loaded
 static u64 dspEqLastScan;
 
@@ -227,6 +228,7 @@ static void DspEq_Tick(void)
     {
         dspEqScanFailures = 0; // nothing is being tried, so nothing is "unsupported"
         dspEqScanFailed = false;
+        dspEqCodeBusy = false;
     }
 
     if (!patched && !original)
@@ -248,7 +250,11 @@ static void DspEq_Tick(void)
     if (original)
     {
         // Firmware freshly (re)loaded, not patched
-        if (!wantEq || dspEqGaveUp || !DspEq_CodeAreaIsFree(prog))
+        if (!wantEq || dspEqGaveUp)
+            return;
+
+        dspEqCodeBusy = !DspEq_CodeAreaIsFree(prog);
+        if (dspEqCodeBusy)
             return;
 
         DspEq_CountEvent();
@@ -359,6 +365,7 @@ void DspEq_GetStatus(DspEqStatus *status)
     for (u32 i = 0; i < 10; i++)
         status->diagT[i] = 0;
     status->gaveUp = dspEqGaveUp;
+    status->codeBusy = dspEqCodeBusy;
     status->installs = dspEqInstalls;
     status->fixes = dspEqFixes;
     status->hookA = 0;

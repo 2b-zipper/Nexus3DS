@@ -53,6 +53,7 @@ typedef struct DspEqStatus {
     u8 pdnDspCnt;       // raw PDN_DSP_CNT (bit 0: not in reset, bit 1: clock on)
     bool dspRunning;
     bool gaveUp;        // patching was stopped because it kept being undone (see dsp_eq.c)
+    bool codeBusy;      // the DSP program memory area for the routine is in use, the patch cannot be installed
     u32 installs;       // how many times the patch was applied
     u32 fixes;          // how many times the parameter block had to be restored
     u16 hookA, hookB;   // operands of the two hooked calls in the firmware (valid if dspRunning)
