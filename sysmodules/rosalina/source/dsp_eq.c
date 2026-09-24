@@ -120,7 +120,9 @@ typedef struct DspEqHooks {
 
 static DspEqHooks dspEqHooks;
 static bool dspEqHooksValid;
-static bool dspEqScanFailed;
+static bool dspEqScanFailed;      // "unsupported": the search failed several times in a row
+static u32 dspEqScanFailures;
+#define DSPEQ_SCAN_FAILURES_UNSUPPORTED 3 // a search can fail while the firmware is still being loaded
 static u64 dspEqLastScan;
 
 static bool DspEq_PatternAt(volatile u16 *prog, u32 addr)
@@ -221,6 +223,12 @@ static void DspEq_Tick(void)
     bool patched = DspEq_HooksPatched(prog);
     bool original = !patched && DspEq_HooksOriginal(prog);
 
+    if (!wantEq)
+    {
+        dspEqScanFailures = 0; // nothing is being tried, so nothing is "unsupported"
+        dspEqScanFailed = false;
+    }
+
     if (!patched && !original)
     {
         // Nothing known about the firmware that is loaded now (first look, or another firmware was loaded): look for
@@ -230,8 +238,9 @@ static void DspEq_Tick(void)
         if (wantEq && !dspEqGaveUp && now - dspEqLastScan > 2 * (u64)SYSCLOCK_ARM11)
         {
             dspEqLastScan = now;
-            dspEqScanFailed = !DspEq_FindHooks(prog, &dspEqHooks);
-            dspEqHooksValid = !dspEqScanFailed;
+            dspEqHooksValid = DspEq_FindHooks(prog, &dspEqHooks);
+            dspEqScanFailures = dspEqHooksValid ? 0 : dspEqScanFailures + 1;
+            dspEqScanFailed = dspEqScanFailures >= DSPEQ_SCAN_FAILURES_UNSUPPORTED;
             original = dspEqHooksValid;
         }
     }
