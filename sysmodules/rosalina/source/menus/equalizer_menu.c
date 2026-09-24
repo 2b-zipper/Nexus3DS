@@ -69,6 +69,7 @@ void EqualizerMenu_Show(void)
         bool failed = st.gaveUp || st.codeBusy || (st.dspRunning && st.hookState == DSPEQ_HOOKS_UNSUPPORTED);
 
         Draw_Lock();
+        Draw_ClearFramebuffer(); // text lines change length (Speakers / Headphones) and appear / disappear: start from a blank screen
         Draw_DrawMenuFrame("Equalizer");
 
         u32 posY = 40;
