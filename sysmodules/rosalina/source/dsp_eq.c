@@ -48,7 +48,6 @@
 #define DSPEQ_LOAD_ATTEMPTS 120                  // once a second for 2 minutes
 #define DSPEQ_GIVEUP_EVENTS 5                    // this many installs / lost parameter blocks ...
 #define DSPEQ_GIVEUP_WINDOW (30LL * SYSCLOCK_ARM11) // ... within this many ticks make Rosalina stop patching
-#define DSPEQ_PARAM_COEFS   0x10
 #define DSPEQ_PARAM_STATES  0x40
 #define DSPEQ_STATE_WORDS   48                   // 3 bands x 2 channels x 8
 
@@ -99,12 +98,19 @@ static void DspEq_WriteParams(volatile u16 *data, EqProfile profile, bool wantEq
             block[DSPEQ_PARAM_STATES + i] = 0;
     }
 
+    // The DSP routine may be running while this happens, so the coefficients are never rewritten in place: they go to the bank
+    // the routine is not using, then a single 16-bit write of the selector makes the routine switch to it as a whole (it reads the
+    // selector once per frame)
     u16 coefs[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND];
     Equalizer_GetDspWords(profile, coefs);
+    bool useBank1 = block[DSPEQ_PARAM_SEL] == 0;
+    volatile u16 *bank = block + (useBank1 ? DSPEQ_PARAM_COEFS1 : DSPEQ_PARAM_COEFS0);
     for (u32 band = 0; band < EQ_BAND_COUNT; band++)
         for (u32 i = 0; i < EQ_DSP_WORDS_PER_BAND; i++)
-            block[DSPEQ_PARAM_COEFS + 8 * band + i] = coefs[band][i];
+            bank[8 * band + i] = coefs[band][i];
 
+    __dsb();
+    block[DSPEQ_PARAM_SEL] = useBank1 ? 1 : 0;
     __dsb();
     block[0] = wantEq ? DSPEQ_MAGIC : 0;
     __dsb();

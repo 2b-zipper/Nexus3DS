@@ -11,7 +11,11 @@ import sys
 CODE_BASE = 0x1000        # program memory address of the new segment (free area 0xF2E..0x28FF)
 EQ = 0x8100               # data memory block (words): padding at the start of the DSP shared frame block
 MAGIC = 0xE0E1
-CF = lambda band: EQ + 0x10 + 8 * band
+CF = lambda band: EQ + 0x10 + 8 * band                 # coefficient bank 0
+CF1 = lambda band: EQ + 0xD0 + 8 * band                # coefficient bank 1
+SEL = EQ + 0x08          # which bank the routine uses (0 / non-zero); Rosalina fills the other bank, then flips this word
+CFBASE = EQ + 0x09       # the routine's copy of the selected bank's base address, taken once per frame so a frame never mixes
+                         # coefficients of two settings
 ST = lambda band, ch: EQ + 0x40 + 8 * (band * 2 + ch)
 # diagnostics the routine keeps for Rosalina to display
 DIAG_CALLS = EQ + 0x70   # number of times the routine ran
@@ -88,7 +92,7 @@ def gen():
     bump(DIAG_B)
     a.ins('br 0x0000$@BODY@ always', 2)
     a.label('BODY')                                # r4 = start of the 160-frame stereo buffer just written (both callees preserve it)
-    a.ins('push r0'); a.ins('push r1'); a.ins('push r2'); a.ins('push r4'); a.ins('push y0')
+    a.ins('push r0'); a.ins('push r1'); a.ins('push r2'); a.ins('push r3'); a.ins('push r4'); a.ins('push y0')
     bump(DIAG_CALLS)
     for i, (enc, reg) in enumerate([('mod0', 'mod0'), ('mod1', 'mod1'), ('mod2', 'mod2'), ('mod3', 'mod3'), ('stt0', 'stt0'), ('stt1', 'stt1'), ('stt2', 'stt2')]):
         a.ins('mov %s a0l' % reg)
@@ -105,6 +109,14 @@ def gen():
     a.ins('cmpv 0x$%04x a0l' % MAGIC, 2)
     a.ins('br 0x0000$@DONE@ neq', 2)
     a.ins('mov r4 r2')
+    # ---- pick the coefficient bank for this frame (Rosalina updates the other bank and then flips SEL) ----
+    a.ins('mov 0x$%04x a1' % CF(0), 2)
+    a.ins('mov [0x$%04x] a0' % SEL, 2)
+    a.ins('cmpv 0x$0000 a0l', 2)
+    a.ins('br 0x0000$@BANK0@ eq', 2)
+    a.ins('mov 0x$%04x a1' % CF1(0), 2)
+    a.label('BANK0')
+    a.ins('mov a1l [0x$%04x]' % CFBASE, 2)
     # ---- self-test: the filter's multiply-accumulate chain on fixed inputs, intermediate results stored for Rosalina to show ----
     for i, w in enumerate([0x1012, 0xF09C, 0x0000, 0x0F76, 0x0000, 0x0F76, 0x0000]):
         a.ins('mov 0x$%04x a0' % w, 2)
@@ -133,11 +145,15 @@ def gen():
             a.ins('mov r2 r1')
             if ch:
                 a.ins('addv 0x$0001 r1', 2)
+            a.ins('mov [0x$%04x] a0' % CFBASE, 2)                  # r3 = coefficients of this band in the selected bank
+            if band:
+                a.ins('add 0x$%04x a0' % (8 * band), 2)
+            a.ins('mov a0l r3')
             a.ins('bkrep 0x009fu8 0x0000$@%s_last@' % lbl, 2)
             a.ins('mov [r1] a1')                                   # x0
             a.ins('mov a1l [0x$%04x]' % ST(band, ch), 2)           # S[0] = x0
             a.ins('mov 0x$%04x r4' % ST(band, ch), 2)
-            a.ins('mov 0x$%04x r0' % CF(band), 2)
+            a.ins('mov r3 r0')                                     # coefficient pointer of this band (set up before the loop)
             a.ins('clr a0 always')
             a.ins('clr a1 always')
             # S = [x0, x1, x2, y1h, y2h, y1l, y2l]   C = [b0, b1, b2, -a1, -a2, -a1, -a2]  (Q12)
@@ -158,8 +174,10 @@ def gen():
             a.label(lbl + '_pre')
             a.ins('modr [r1++]')                                   # skip the other channel
             a.label(lbl)                                           # label after last instruction
+    a.ins('mov [0x$%04x] a0' % CFBASE, 2)
+    a.ins('mov a0l r0')
     for i in range(7):                             # diagnostics (only runs when the equalizer is active)
-        a.ins('mov [0x$%04x] a0' % (CF(0) + i), 2)
+        a.ins('mov [r0++] a0')
         a.ins('mov a0l [0x$%04x]' % (DIAG_CF + i), 2)
         a.ins('mov [0x$%04x] a0' % (ST(0, 0) + i), 2)
         a.ins('mov a0l [0x$%04x]' % (DIAG_ST + i), 2)
@@ -167,7 +185,7 @@ def gen():
     a.ins('mov [0x$%04x] a0' % RING_IDX, 2)
     a.ins('mov a0l [0x$%04x]' % DIAG_IDX1, 2)
     a.ins('pop mod0')
-    a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r2'); a.ins('pop r1'); a.ins('pop r0')
+    a.ins('pop y0'); a.ins('pop r4'); a.ins('pop r3'); a.ins('pop r2'); a.ins('pop r1'); a.ins('pop r0')
     a.ins('ret always')
     return a
 
