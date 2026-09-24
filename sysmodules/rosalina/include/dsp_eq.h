@@ -46,6 +46,10 @@ typedef enum DspEqHookState {
 typedef struct DspEqStatus {
     DspEqHookState hookState;
     u32 hookAddrA;      // program address of the first hooked call operand (0 if unknown)
+    u32 searchBestAddr; // closest partial match of the last failed search for the call sequence ...
+    u32 searchBestScore;// ... and how many of the 16 words matched
+    u32 searchNonZero;  // non-zero program words in the searched range
+    u16 searchBestWords[16];
     u8 pdnDspCnt;       // raw PDN_DSP_CNT (bit 0: not in reset, bit 1: clock on)
     bool dspRunning;
     bool gaveUp;        // patching was stopped because it kept being undone (see dsp_eq.c)

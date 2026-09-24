@@ -131,11 +131,38 @@ static bool DspEq_PatternAt(volatile u16 *prog, u32 addr)
     return true;
 }
 
+// Closest partial match seen by the last failed search (diagnostics)
+static u32 dspEqBestAddr, dspEqBestScore;
+static u16 dspEqBestWords[DSPEQ_PATTERN_WORDS];
+static u32 dspEqNonZeroWords; // program words 0x2000..0x7FFF that are not 0 (is a firmware loaded there at all?)
+
 static bool DspEq_FindHooks(volatile u16 *prog, DspEqHooks *out)
 {
+    dspEqBestScore = 0;
+    dspEqNonZeroWords = 0;
+
     for (u32 addr = DSPEQ_SCAN_FIRST; addr + DSPEQ_PATTERN_WORDS < DSPEQ_SCAN_LAST; addr++)
     {
-        if (prog[addr] != dspEqPattern[0] || prog[addr + 1] != dspEqPattern[1] || !DspEq_PatternAt(prog, addr))
+        u16 first = prog[addr];
+        if (first)
+            dspEqNonZeroWords++;
+        if (first != dspEqPattern[0])
+            continue;
+
+        // score every place that starts like the sequence, remember the closest one
+        u32 score = 0;
+        for (u32 i = 0; i < DSPEQ_PATTERN_WORDS; i++)
+            if (dspEqPattern[i] == DSPEQ_PATTERN_ANY || prog[addr + i] == dspEqPattern[i])
+                score++;
+        if (score > dspEqBestScore)
+        {
+            dspEqBestScore = score;
+            dspEqBestAddr = addr;
+            for (u32 i = 0; i < DSPEQ_PATTERN_WORDS; i++)
+                dspEqBestWords[i] = prog[addr + i];
+        }
+
+        if (score != DSPEQ_PATTERN_WORDS)
             continue;
 
         out->patternAddr = addr;
@@ -306,6 +333,11 @@ static void DspEq_ThreadMain(void)
 
 void DspEq_GetStatus(DspEqStatus *status)
 {
+    status->searchBestAddr = dspEqBestAddr;
+    status->searchBestScore = dspEqBestScore;
+    status->searchNonZero = dspEqNonZeroWords;
+    for (u32 i = 0; i < DSPEQ_PATTERN_WORDS; i++)
+        status->searchBestWords[i] = dspEqBestWords[i];
     status->pdnDspCnt = PDN_DSP_CNT;
     status->dspRunning = DspEq_IsDspRunning();
     status->callsPerSec = dspEqCallsPerSec;

@@ -98,6 +98,12 @@ void EqualizerMenu_Show(void)
 
         if (showDiag)
         {
+            if (st.hookState == DSPEQ_HOOKS_UNSUPPORTED)
+            {
+                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "search: best %04lx %lu/16 nz %lu\n", st.searchBestAddr, st.searchBestScore, st.searchNonZero);
+                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x\n", st.searchBestWords[0], st.searchBestWords[1], st.searchBestWords[2], st.searchBestWords[3], st.searchBestWords[4], st.searchBestWords[5], st.searchBestWords[6], st.searchBestWords[7]);
+                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x\n", st.searchBestWords[8], st.searchBestWords[9], st.searchBestWords[10], st.searchBestWords[11], st.searchBestWords[12], st.searchBestWords[13], st.searchBestWords[14], st.searchBestWords[15]);
+            }
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook@%04lx %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookAddrA, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u\n", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB);
             posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "t %04x %04x %04x %04x %04x\n", st.diagT[0], st.diagT[1], st.diagT[2], st.diagT[3], st.diagT[4]);
