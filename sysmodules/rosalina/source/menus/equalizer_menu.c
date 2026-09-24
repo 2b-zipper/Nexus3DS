@@ -26,14 +26,44 @@
 */
 
 #include <3ds.h>
+#include <stdarg.h>
+#include <string.h>
 #include "menus/equalizer_menu.h"
 #include "equalizer.h"
 #include "dsp_eq.h"
 #include "dsp_eq_code.h"
 #include "draw.h"
 #include "menu.h"
+#include "fmt.h"
 
 #define EQ_BAR_CELLS    12 // cells per side of the 0 dB marker (2 dB each)
+
+// Fixed screen layout. Every line is always redrawn at the same place and padded with spaces to the full width of the text area,
+// so a shorter text completely replaces a longer one (each character cell is drawn whole, glyph and background) and nothing has to
+// be cleared first - clearing the screen makes it flash.
+#define EQ_TEXT_X       20
+#define EQ_LINE_CHARS   ((SCREEN_BOT_WIDTH - EQ_TEXT_X) / SPACING_X)
+#define EQ_Y_PROFILE    40
+#define EQ_Y_HELP       51   // three lines: help, or the firmware search result when the firmware is not recognised
+#define EQ_Y_BANDS      95   // 22 pixels per band
+#define EQ_Y_STATE      172
+#define EQ_Y_DIAG       183  // four lines, only used when something is wrong
+
+static void EqualizerMenu_Line(u32 y, u32 color, const char *fmt, ...)
+{
+    char buf[DRAW_MAX_FORMATTED_STRING_SIZE + 1];
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buf, fmt, args);
+    va_end(args);
+
+    size_t len = strlen(buf);
+    if (len > EQ_LINE_CHARS)
+        len = EQ_LINE_CHARS;
+    memset(buf + len, ' ', EQ_LINE_CHARS - len);
+    buf[EQ_LINE_CHARS] = '\0';
+    Draw_DrawString(EQ_TEXT_X, y, color, buf);
+}
 
 static const char *const bandNames[EQ_BAND_COUNT] = { "Bass ", "Mids ", "Highs" };
 
@@ -69,48 +99,53 @@ void EqualizerMenu_Show(void)
         bool failed = st.gaveUp || st.codeBusy || (st.dspRunning && st.hookState == DSPEQ_HOOKS_UNSUPPORTED);
 
         Draw_Lock();
-        Draw_ClearFramebuffer(); // text lines change length (Speakers / Headphones) and appear / disappear: start from a blank screen
         Draw_DrawMenuFrame("Equalizer");
 
-        u32 posY = 40;
-        posY = Draw_DrawFormattedString(20, posY, COLOR_CYAN, "Settings for: %s%s\n", Equalizer_ProfileName(editProfile), editProfile == inUse ? " (in use)" : "");
+        EqualizerMenu_Line(EQ_Y_PROFILE, COLOR_CYAN, "Settings for: %s%s", Equalizer_ProfileName(editProfile), editProfile == inUse ? " (in use)" : "");
+
         if (!failed)
         {
-            posY = Draw_DrawString(20, posY, COLOR_WHITE, "L: switch speakers/headphones settings.\n");
-            posY = Draw_DrawString(20, posY, COLOR_WHITE, "Up/down: band, left/right: +-1 dB, R: +-6 dB.\n");
-            posY = Draw_DrawString(20, posY, COLOR_WHITE, "X: reset this output.\n");
+            EqualizerMenu_Line(EQ_Y_HELP, COLOR_WHITE, "L: switch speakers/headphones settings.");
+            EqualizerMenu_Line(EQ_Y_HELP + SPACING_Y, COLOR_WHITE, "Up/down: band, left/right: +-1 dB, R: +-6 dB.");
+            EqualizerMenu_Line(EQ_Y_HELP + 2 * SPACING_Y, COLOR_WHITE, "X: reset this output.");
         }
-        posY += SPACING_Y;
+        else if (st.hookState == DSPEQ_HOOKS_UNSUPPORTED)
+        {
+            EqualizerMenu_Line(EQ_Y_HELP, COLOR_GRAY, "search: best %04lx %lu/16 nz %lu", st.searchBestAddr, st.searchBestScore, st.searchNonZero);
+            EqualizerMenu_Line(EQ_Y_HELP + SPACING_Y, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x", st.searchBestWords[0], st.searchBestWords[1], st.searchBestWords[2], st.searchBestWords[3], st.searchBestWords[4], st.searchBestWords[5], st.searchBestWords[6], st.searchBestWords[7]);
+            EqualizerMenu_Line(EQ_Y_HELP + 2 * SPACING_Y, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x", st.searchBestWords[8], st.searchBestWords[9], st.searchBestWords[10], st.searchBestWords[11], st.searchBestWords[12], st.searchBestWords[13], st.searchBestWords[14], st.searchBestWords[15]);
+        }
+        else
+        {
+            for (u32 i = 0; i < 3; i++)
+                EqualizerMenu_Line(EQ_Y_HELP + i * SPACING_Y, COLOR_GRAY, "");
+        }
 
         for (int i = 0; i < EQ_BAND_COUNT; i++)
         {
             int gain = Equalizer_GetGain(editProfile, (EqBand)i);
-            u32 color = i == pos ? COLOR_CYAN : COLOR_WHITE;
             char bar[3 + 2 * EQ_BAR_CELLS + 1];
             EqualizerMenu_FormatBar(bar, gain);
-            posY = Draw_DrawFormattedString(20, posY, color, "%s %+3d dB %s\n", bandNames[i], gain, bar) + SPACING_Y;
+            EqualizerMenu_Line(EQ_Y_BANDS + i * 2 * SPACING_Y, i == pos ? COLOR_CYAN : COLOR_WHITE, "%s %+3d dB %s", bandNames[i], gain, bar);
         }
-
-        posY += SPACING_Y;
 
         const char *state = st.gaveUp ? "stopped (DSP kept undoing it)" : st.codeBusy ? "DSP code area in use" : !st.dspRunning ? "DSP not running" :
             st.hookState == DSPEQ_HOOKS_PATCHED ? (st.magic == DSPEQ_MAGIC ? "active" : "patched, bypassed") :
             st.hookState == DSPEQ_HOOKS_ORIGINAL ? "not applied yet" :
             st.hookState == DSPEQ_HOOKS_UNSUPPORTED ? "unsupported DSP firmware" : "idle";
-        posY = Draw_DrawFormattedString(20, posY, failed ? COLOR_ORANGE : COLOR_GRAY, "DSP: %-24s\n", state);
+        EqualizerMenu_Line(EQ_Y_STATE, failed ? COLOR_ORANGE : COLOR_GRAY, "DSP: %s", state);
 
         if (failed)
         {
-            if (st.hookState == DSPEQ_HOOKS_UNSUPPORTED)
-            {
-                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "search: best %04lx %lu/16 nz %lu\n", st.searchBestAddr, st.searchBestScore, st.searchNonZero);
-                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x\n", st.searchBestWords[0], st.searchBestWords[1], st.searchBestWords[2], st.searchBestWords[3], st.searchBestWords[4], st.searchBestWords[5], st.searchBestWords[6], st.searchBestWords[7]);
-                posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "%04x %04x %04x %04x %04x %04x %04x %04x\n", st.searchBestWords[8], st.searchBestWords[9], st.searchBestWords[10], st.searchBestWords[11], st.searchBestWords[12], st.searchBestWords[13], st.searchBestWords[14], st.searchBestWords[15]);
-            }
-            posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "pdn %02x hook@%04lx %04x/%04x prm %04x i%lu f%lu\n", st.pdnDspCnt, st.hookAddrA, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
-            posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u  d%u/%u\n", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB, st.droppedA, st.droppedB);
-            posY = Draw_DrawFormattedString(20, posY, COLOR_GRAY, "t %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", st.diagT[0], st.diagT[1], st.diagT[2], st.diagT[3], st.diagT[4], st.diagT[5], st.diagT[6], st.diagT[7], st.diagT[8], st.diagT[9]);
-            Draw_DrawFormattedString(20, posY, COLOR_GRAY, "cf %04x %04x %04x %04x %04x %04x %04x\n", st.diagCf[0], st.diagCf[1], st.diagCf[2], st.diagCf[3], st.diagCf[4], st.diagCf[5], st.diagCf[6]);
+            EqualizerMenu_Line(EQ_Y_DIAG, COLOR_GRAY, "pdn %02x hook@%04lx %04x/%04x prm %04x i%lu f%lu", st.pdnDspCnt, st.hookAddrA, st.hookA, st.hookB, st.magic, st.installs, st.fixes);
+            EqualizerMenu_Line(EQ_Y_DIAG + SPACING_Y, COLOR_GRAY, "calls %u pk %lu/s r4 %04x A%u B%u  d%u/%u", st.diagCalls, st.peakCallsPerSec, st.diagR4, st.diagA, st.diagB, st.droppedA, st.droppedB);
+            EqualizerMenu_Line(EQ_Y_DIAG + 2 * SPACING_Y, COLOR_GRAY, "t %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x", st.diagT[0], st.diagT[1], st.diagT[2], st.diagT[3], st.diagT[4], st.diagT[5], st.diagT[6], st.diagT[7], st.diagT[8], st.diagT[9]);
+            EqualizerMenu_Line(EQ_Y_DIAG + 3 * SPACING_Y, COLOR_GRAY, "cf %04x %04x %04x %04x %04x %04x %04x", st.diagCf[0], st.diagCf[1], st.diagCf[2], st.diagCf[3], st.diagCf[4], st.diagCf[5], st.diagCf[6]);
+        }
+        else
+        {
+            for (u32 i = 0; i < 4; i++)
+                EqualizerMenu_Line(EQ_Y_DIAG + i * SPACING_Y, COLOR_GRAY, "");
         }
 
         Draw_FlushFramebuffer();
