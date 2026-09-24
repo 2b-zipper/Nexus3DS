@@ -28,6 +28,7 @@
 #include "luma_config.h"
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
+#include "menus/equalizer_menu.h"
 #include "menus/screen_toggle.h"
 #include "memory.h"
 #include "draw.h"
@@ -48,6 +49,7 @@ Menu sysconfigMenu = {
         { "Toggle Power Button", METHOD, .method=&SysConfigMenu_TogglePowerButton },
         { "Toggle power to card slot", METHOD, .method=&SysConfigMenu_ToggleCardIfPower},
         { "Toggle Screen options...", MENU, .menu=&screenToggleMenu, .visibility=&menuCheckNoO2ds},
+        { "Equalizer...", METHOD, .method = &EqualizerMenu_Show },
         { "Extra Config...", METHOD, .method = &ConfigExtra_DrawDetailedMenu },
         {},
     }
