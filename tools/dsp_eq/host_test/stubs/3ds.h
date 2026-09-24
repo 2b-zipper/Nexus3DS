@@ -27,6 +27,7 @@ enum { PATH_EMPTY, PATH_ASCII };
 static inline FS_Path fsMakePath(int t, const void *d) { (void)d; FS_Path p = {t}; return p; }
 #define CORE_SYSTEM 1
 #define SYSCLOCK_ARM11 268111856LL
-static inline u64 svcGetSystemTick(void) { static u64 t; t += 268111856ULL / 10; return t; }
+// system tick counter: starts well after boot, advances 0.1 s per call
+static inline u64 svcGetSystemTick(void) { static u64 t = 100ULL * 268111856ULL; t += 268111856ULL / 10; return t; }
 extern bool g_hostHeadset;
 static inline bool osIsHeadsetConnected(void) { return g_hostHeadset; }

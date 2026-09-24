@@ -53,3 +53,14 @@ g++ -std=c++17 -O2 -DDSPEQ_HOST_GLUE -I<teakra>/include harness.cpp host_glue.o 
 # gains bass,mids,high@frame; several changes separated by ';'
 EQ_AMP=1500 EQ_K=128 EQ_LIVE="12,0,-12@60;-6,10,5@180" ./harness_live dspfirm.cdc 330 out
 ```
+
+`host_test/detect_test.c` runs the same patch logic on a DSP RAM dump (no emulation) and prints which program words it
+changed - handy to check that a firmware version is recognised:
+
+```
+gcc -Ihost_test/stubs -I../../sysmodules/rosalina/include host_test/detect_test.c host_glue.o -lm -o detect_test
+./detect_test dsp_18_s1_1ff00000.bin
+```
+
+The firmware versions differ in address (HOME Menu: hooks at 0x2FEC/0x2FF2, 3DS Sound: 0x2F98/0x2F9E), so Rosalina
+searches program memory for the audio output call sequence instead of using fixed addresses.
