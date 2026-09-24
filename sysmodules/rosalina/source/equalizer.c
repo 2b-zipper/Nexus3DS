@@ -29,6 +29,7 @@
 #include <math.h>
 #include "equalizer.h"
 #include "ifile.h"
+#include "luma_config.h"
 #include "utils.h"
 
 #define EQ_SAMPLE_RATE  32728.0f // DSP output rate
@@ -39,7 +40,7 @@
 #define EQ_DSP_QBITS    12       // fractional bits of the DSP coefficients
 
 static s8 equalizerGains[EQ_PROFILE_COUNT][EQ_BAND_COUNT];
-static bool equalizerConfigDone; // saved settings were loaded, or the user already changed them
+static bool equalizerUserChanged; // the gains were changed from the menu (so an old settings file must not overwrite them)
 
 EqProfile Equalizer_CurrentOutput(void)
 {
@@ -58,12 +59,17 @@ s8 Equalizer_GetGain(EqProfile profile, EqBand band)
     return equalizerGains[profile][band];
 }
 
-void Equalizer_SetGain(EqProfile profile, EqBand band, int gainDb)
+static void Equalizer_StoreGain(EqProfile profile, EqBand band, int gainDb)
 {
     if (profile >= EQ_PROFILE_COUNT || band >= EQ_BAND_COUNT)
         return;
     equalizerGains[profile][band] = (s8)CLAMP(gainDb, EQ_GAIN_MIN, EQ_GAIN_MAX);
-    equalizerConfigDone = true;
+}
+
+void Equalizer_SetGain(EqProfile profile, EqBand band, int gainDb)
+{
+    Equalizer_StoreGain(profile, band, gainDb);
+    equalizerUserChanged = true;
 }
 
 bool Equalizer_IsFlat(EqProfile profile)
@@ -157,69 +163,71 @@ void Equalizer_GetDspWords(EqProfile profile, u16 out[EQ_BAND_COUNT][EQ_DSP_WORD
     }
 }
 
-#define EQ_CONFIG_PATH   "/luma/equalizer.bin"
-#define EQ_CONFIG_MAGIC1 0x31514545 // "EEQ1": one set of gains (used for both outputs)
-#define EQ_CONFIG_MAGIC2 0x32514545 // "EEQ2": one set per output
+// The gains are stored in /luma/nexusconfig.ini ([equalizer] section) together with the other settings: the boot code parses
+// them and hands them to the kernel extension, Rosalina reads them from there (svcGetSystemInfo) and writes the file back
+// with LumaConfig_SaveSettings().
 
-typedef struct EqConfigFile {
-    u32 magic;
-    s8 gains[EQ_PROFILE_COUNT][EQ_BAND_COUNT];
-    u8 pad[2];
-} EqConfigFile;
-
-Result Equalizer_SaveConfig(void)
+static void Equalizer_UnpackGains(EqProfile profile, s64 packed)
 {
-    EqConfigFile cfg = { .magic = EQ_CONFIG_MAGIC2 };
-    for (int p = 0; p < EQ_PROFILE_COUNT; p++)
-        for (int i = 0; i < EQ_BAND_COUNT; i++)
-            cfg.gains[p][i] = equalizerGains[p][i];
-
-    IFile file;
-    u64 total;
-    Result res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, EQ_CONFIG_PATH), FS_OPEN_CREATE | FS_OPEN_WRITE);
-    if (R_SUCCEEDED(res))
-        res = IFile_SetSize(&file, sizeof(cfg));
-    if (R_SUCCEEDED(res))
-        res = IFile_Write(&file, &total, &cfg, sizeof(cfg), 0);
-    IFile_Close(&file);
-    return res;
-}
-
-bool Equalizer_ConfigDone(void)
-{
-    return equalizerConfigDone;
+    for (int band = 0; band < EQ_BAND_COUNT; band++)
+        Equalizer_StoreGain(profile, (EqBand)band, (s8)((packed >> (8 * band)) & 0xFF));
 }
 
 void Equalizer_LoadConfig(void)
 {
-    if (equalizerConfigDone)
-        return;
+    s64 speakers = 0, headphones = 0;
 
+    if (R_SUCCEEDED(svcGetSystemInfo(&speakers, 0x10000, 0x188)))
+        Equalizer_UnpackGains(EQ_PROFILE_SPEAKERS, speakers);
+    if (R_SUCCEEDED(svcGetSystemInfo(&headphones, 0x10000, 0x189)))
+        Equalizer_UnpackGains(EQ_PROFILE_HEADPHONES, headphones);
+}
+
+Result Equalizer_SaveConfig(void)
+{
+    LumaConfig_RequestSaveSettings(); // saved when the menu is left
+    return 0;
+}
+
+// Earlier versions kept the gains in /luma/equalizer.bin. Import that file once, unless the ini already has settings.
+#define EQ_LEGACY_PATH   "/luma/equalizer.bin"
+#define EQ_LEGACY_MAGIC1 0x31514545 // "EEQ1": one set of gains
+#define EQ_LEGACY_MAGIC2 0x32514545 // "EEQ2": one set per output
+
+typedef struct EqLegacyFile {
+    u32 magic;
+    s8 gains[EQ_PROFILE_COUNT][EQ_BAND_COUNT];
+    u8 pad[2];
+} EqLegacyFile;
+
+bool Equalizer_ImportLegacyConfig(void)
+{
     IFile file;
     u64 total = 0;
-    EqConfigFile cfg = {0};
-    Result res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, EQ_CONFIG_PATH), FS_OPEN_READ);
+    EqLegacyFile cfg = {0};
+    Result res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, EQ_LEGACY_PATH), FS_OPEN_READ);
     if (R_FAILED(res))
-        return; // no saved settings yet, or the SD card is not available yet: the caller may retry
+        return false; // no such file, or the SD card is not available yet
 
     res = IFile_Read(&file, &total, &cfg, sizeof(cfg));
     IFile_Close(&file);
     if (R_FAILED(res))
-        return;
+        return false;
 
-    if (total == sizeof(cfg) && cfg.magic == EQ_CONFIG_MAGIC2)
+    bool valid = (total == sizeof(cfg) && cfg.magic == EQ_LEGACY_MAGIC2) || (total >= 4 + EQ_BAND_COUNT && cfg.magic == EQ_LEGACY_MAGIC1);
+    if (valid && !equalizerUserChanged && Equalizer_IsFlat(EQ_PROFILE_SPEAKERS) && Equalizer_IsFlat(EQ_PROFILE_HEADPHONES))
     {
         for (int p = 0; p < EQ_PROFILE_COUNT; p++)
             for (int i = 0; i < EQ_BAND_COUNT; i++)
-                Equalizer_SetGain((EqProfile)p, (EqBand)i, cfg.gains[p][i]);
-        equalizerConfigDone = true;
+                Equalizer_StoreGain((EqProfile)p, (EqBand)i, cfg.magic == EQ_LEGACY_MAGIC1 ? cfg.gains[0][i] : cfg.gains[p][i]);
+        LumaConfig_RequestSaveSettings();
     }
-    else if (total >= 4 + EQ_BAND_COUNT && cfg.magic == EQ_CONFIG_MAGIC1)
+
+    FS_Archive archive;
+    if (R_SUCCEEDED(FSUSER_OpenArchive(&archive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""))))
     {
-        // older file: the same gains apply to both outputs
-        for (int p = 0; p < EQ_PROFILE_COUNT; p++)
-            for (int i = 0; i < EQ_BAND_COUNT; i++)
-                Equalizer_SetGain((EqProfile)p, (EqBand)i, cfg.gains[0][i]);
-        equalizerConfigDone = true;
+        FSUSER_DeleteFile(archive, fsMakePath(PATH_ASCII, EQ_LEGACY_PATH));
+        FSUSER_CloseArchive(archive);
     }
+    return valid;
 }

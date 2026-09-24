@@ -161,6 +161,7 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
             u32 homeButtonCombo;
             u8 screenToggleTarget;
             u32 screenToggleCombo;
+            s8 equalizerGains[6];
 
             u16 launchedPath[80+1];
         } info;
@@ -249,6 +250,7 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
     info->homeButtonCombo = configData.homeButtonCombo;
     info->screenToggleTarget = configData.screenToggleTarget;
     info->screenToggleCombo = configData.screenToggleCombo;
+    memcpy(info->equalizerGains, configData.equalizerGains, sizeof(info->equalizerGains));
     info->versionMajor = LUMA_VERSION_MAJOR;
     info->versionMinor = LUMA_VERSION_MINOR;
     info->versionBuild = LUMA_VERSION_BUILD;

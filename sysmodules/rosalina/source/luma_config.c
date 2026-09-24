@@ -34,6 +34,7 @@
 #include "menus/miscellaneous.h"
 #include "menus/sysconfig.h"
 #include "menus/config_extra.h"
+#include "equalizer.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "plugin/plgloader.h"
@@ -67,6 +68,8 @@ typedef struct CfgData {
     u32 homeButtonCombo;
     u8 screenToggleTarget;
     u32 screenToggleCombo;
+
+    s8 equalizerGains[6];
 } CfgData;
 
 bool saveSettingsRequest = false;
@@ -234,7 +237,10 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
         homeButtonComboStr,
         (unsigned int) cfg->screenToggleTarget,
-        screenToggleComboStr
+        screenToggleComboStr,
+
+        (int)cfg->equalizerGains[0], (int)cfg->equalizerGains[1], (int)cfg->equalizerGains[2],
+        (int)cfg->equalizerGains[3], (int)cfg->equalizerGains[4], (int)cfg->equalizerGains[5]
     );
 
     return n < 0 ? 0 : (size_t)n;
@@ -246,7 +252,7 @@ void LumaConfig_RequestSaveSettings(void) {
 
 Result LumaConfig_SaveSettings(void)
 {
-    char inibuf[0x2500];
+    static char inibuf[0x3000]; // static: too big for the stack of the menu thread
 
     Result res;
 
@@ -307,6 +313,10 @@ Result LumaConfig_SaveSettings(void)
     configData.homeButtonCombo = homeButtonCombo;
     configData.screenToggleTarget = screenToggleTarget;
     configData.screenToggleCombo = screenToggleCombo;
+
+    for (int p = 0; p < EQ_PROFILE_COUNT; p++)
+        for (int b = 0; b < EQ_BAND_COUNT; b++)
+            configData.equalizerGains[p * EQ_BAND_COUNT + b] = Equalizer_GetGain((EqProfile)p, (EqBand)b);
 
     configData.extraConfigFlags = 0;
     if (configExtra.suppressLeds) configData.extraConfigFlags |= 1 << 0;

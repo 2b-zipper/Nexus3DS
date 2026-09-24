@@ -31,3 +31,8 @@ static inline FS_Path fsMakePath(int t, const void *d) { (void)d; FS_Path p = {t
 static inline u64 svcGetSystemTick(void) { static u64 t = 100ULL * 268111856ULL; t += 268111856ULL / 10; return t; }
 extern bool g_hostHeadset;
 static inline bool osIsHeadsetConnected(void) { return g_hostHeadset; }
+typedef u32 FS_Archive;
+static inline Result FSUSER_OpenArchive(FS_Archive *a, int id, FS_Path p) { (void)a; (void)id; (void)p; return 1; }
+static inline Result FSUSER_CloseArchive(FS_Archive a) { (void)a; return 0; }
+static inline Result FSUSER_DeleteFile(FS_Archive a, FS_Path p) { (void)a; (void)p; return 0; }
+static inline Result svcGetSystemInfo(s64 *out, u32 type, s32 param) { (void)type; (void)param; *out = 0; return 1; }

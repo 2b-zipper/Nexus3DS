@@ -68,9 +68,11 @@ EqBiquad Equalizer_GetBiquad(EqProfile profile, EqBand band);
 #define EQ_DSP_WORDS_PER_BAND   7
 void Equalizer_GetDspWords(EqProfile profile, u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND]);
 
+// Gains come from the kernel extension (parsed from /luma/nexusconfig.ini at boot) ...
+void Equalizer_LoadConfig(void);
+// ... and are written back with the other settings. Call after changing gains.
 Result Equalizer_SaveConfig(void);
 
-// Loads the saved gains unless they were loaded/changed already. Does nothing if the file cannot be read (yet).
-void Equalizer_LoadConfig(void);
-// true once saved settings were loaded or the gains were changed by the user
-bool Equalizer_ConfigDone(void);
+// One-time import of the old /luma/equalizer.bin (deleted afterwards). Returns true if the file was found. May be retried
+// until the SD card is available.
+bool Equalizer_ImportLegacyConfig(void);

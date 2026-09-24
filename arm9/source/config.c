@@ -616,6 +616,20 @@ static int configIniHandler(void* user, const char* section, const char* name, c
         } else {
             CHECK_PARSE_OPTION(-1);
         }
+    } else if (strcmp(section, "equalizer") == 0) {
+        static const char *const names[6] = {
+            "speakers_bass", "speakers_mids", "speakers_highs",
+            "headphones_bass", "headphones_mids", "headphones_highs",
+        };
+        for (u32 i = 0; i < 6; i++) {
+            if (strcmp(name, names[i]) == 0) {
+                s64 opt;
+                CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, -24, 24));
+                cfg->equalizerGains[i] = (s8)opt;
+                return 1;
+            }
+        }
+        CHECK_PARSE_OPTION(-1);
     } else if (strcmp(section, "misc") == 0) {
         if (strcmp(name, "force_audio_output") == 0) {
             if (strcasecmp(value, "off") == 0) {
@@ -794,13 +808,16 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
         homeButtonComboStr,
         (unsigned int) cfg->screenToggleTarget,
-        screenToggleComboStr
+        screenToggleComboStr,
+
+        (int)cfg->equalizerGains[0], (int)cfg->equalizerGains[1], (int)cfg->equalizerGains[2],
+        (int)cfg->equalizerGains[3], (int)cfg->equalizerGains[4], (int)cfg->equalizerGains[5]
     );
 
     return n < 0 ? 0 : (size_t)n;
 }
 
-static char tmpIniBuffer[0x2500];
+static char tmpIniBuffer[0x3000];
 
 static bool readLumaIniConfig(void)
 {

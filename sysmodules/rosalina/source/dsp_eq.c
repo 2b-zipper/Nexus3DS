@@ -45,7 +45,7 @@
 #define PDN_DSP_CNT         (*(vu8 *)PA_PTR(0x10141230)) // bit 0: 0 = reset, bit 1: clock enable
 
 #define DSPEQ_POLL_NS       100000000LL
-#define DSPEQ_LOAD_ATTEMPTS 1200                 // 2 minutes of retries
+#define DSPEQ_LOAD_ATTEMPTS 120                  // once a second for 2 minutes
 #define DSPEQ_GIVEUP_EVENTS 5                    // this many installs / lost parameter blocks ...
 #define DSPEQ_GIVEUP_WINDOW (30LL * SYSCLOCK_ARM11) // ... within this many ticks make Rosalina stop patching
 #define DSPEQ_PARAM_COEFS   0x10
@@ -326,18 +326,19 @@ static void DspEq_MeasureRate(void)
 
 static void DspEq_ThreadMain(void)
 {
-    // The SD card may not be available yet this early in boot: keep trying to load the saved settings for a while
-    u32 loadAttempts = 0;
+    // The old settings file may only be readable once the SD card is available: keep trying for a while
+    u32 legacyAttempts = 0, tick = 0;
+    bool legacyDone = false;
 
     while (!preTerminationRequested)
     {
         svcSleepThread(DSPEQ_POLL_NS);
         Sleep__Status(); // waits while the console sleeps
 
-        if (!Equalizer_ConfigDone() && loadAttempts++ < DSPEQ_LOAD_ATTEMPTS)
+        if (!legacyDone && tick++ % 10 == 0 && legacyAttempts++ < DSPEQ_LOAD_ATTEMPTS)
         {
-            Equalizer_LoadConfig();
-            if (Equalizer_ConfigDone())
+            legacyDone = Equalizer_ImportLegacyConfig();
+            if (legacyDone)
                 dspEqDirty = true;
         }
 

@@ -150,6 +150,13 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                 case 0x187:
                     *out = cfwInfo.screenToggleCombo;
                     break;
+                // equalizer gains, one signed byte per band: bass | mids << 8 | highs << 16
+                case 0x188: // speakers
+                    *out = (u8)cfwInfo.equalizerGains[0] | (u8)cfwInfo.equalizerGains[1] << 8 | (u8)cfwInfo.equalizerGains[2] << 16;
+                    break;
+                case 0x189: // headphones
+                    *out = (u8)cfwInfo.equalizerGains[3] | (u8)cfwInfo.equalizerGains[4] << 8 | (u8)cfwInfo.equalizerGains[5] << 16;
+                    break;
                 case 0x200: // isRelease
                     *out = cfwInfo.flags & 1;
                     break;

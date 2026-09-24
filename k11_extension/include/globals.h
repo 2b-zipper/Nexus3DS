@@ -169,6 +169,7 @@ typedef struct CfwInfo
     u32 homeButtonCombo;
     u8 screenToggleTarget;
     u32 screenToggleCombo;
+    s8 equalizerGains[6];
 
     u16 launchedPath[80+1];
 } CfwInfo;

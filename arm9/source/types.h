@@ -94,6 +94,8 @@ typedef struct CfgData {
     u32 homeButtonCombo;
     u8 screenToggleTarget;
     u32 screenToggleCombo;
+
+    s8 equalizerGains[6]; // speakers bass/mids/highs, headphones bass/mids/highs (dB)
 } CfgData;
 
 typedef struct
