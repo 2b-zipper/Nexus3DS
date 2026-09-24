@@ -44,19 +44,29 @@ typedef struct EqBiquad {
     float b0, b1, b2, a1, a2;
 } EqBiquad;
 
+// Separate settings for the two audio outputs; the one matching the output in use (headphones plugged in or not) is applied
+typedef enum EqProfile {
+    EQ_PROFILE_SPEAKERS = 0,
+    EQ_PROFILE_HEADPHONES = 1,
+    EQ_PROFILE_COUNT
+} EqProfile;
+
+// The profile of the audio output in use right now
+EqProfile Equalizer_CurrentOutput(void);
+const char *Equalizer_ProfileName(EqProfile profile);
+
 // Per-band gain in dB, each in [EQ_GAIN_MIN, EQ_GAIN_MAX]
-extern s8 equalizerGains[EQ_BAND_COUNT];
+s8 Equalizer_GetGain(EqProfile profile, EqBand band);
+void Equalizer_SetGain(EqProfile profile, EqBand band, int gainDb);
+bool Equalizer_IsFlat(EqProfile profile);
+void Equalizer_Reset(EqProfile profile);
 
-void Equalizer_SetGain(EqBand band, int gainDb);
-bool Equalizer_IsFlat(void);
-void Equalizer_Reset(void);
-
-// Computes the filter coefficients of a band for the current gain
-EqBiquad Equalizer_GetBiquad(EqBand band);
+// Computes the filter coefficients of a band for the profile's gain
+EqBiquad Equalizer_GetBiquad(EqProfile profile, EqBand band);
 
 // Coefficients in the layout the DSP routine expects: per band [b0, b1, b2, -a1, -a2, -a1, -a2], Q12
 #define EQ_DSP_WORDS_PER_BAND   7
-void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND]);
+void Equalizer_GetDspWords(EqProfile profile, u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND]);
 
 Result Equalizer_SaveConfig(void);
 

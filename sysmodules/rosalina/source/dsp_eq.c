@@ -65,6 +65,7 @@ static u32 dspEqEvents;
 static u64 dspEqEventWindowStart;
 static u32 dspEqInstalls, dspEqFixes;
 static u32 dspEqCallsPerSec, dspEqPeakCallsPerSec;
+static bool dspEqMagicSet; // we last left the parameter block enabled (so a missing magic word means it was lost)
 
 static void DspEq_CountEvent(void)
 {
@@ -86,7 +87,7 @@ static bool DspEq_IsDspRunning(void)
     return (PDN_DSP_CNT & 3) == 3;
 }
 
-static void DspEq_WriteParams(volatile u16 *data, bool wantEq, bool resetStates)
+static void DspEq_WriteParams(volatile u16 *data, EqProfile profile, bool wantEq, bool resetStates)
 {
     volatile u16 *block = data + DSPEQ_DATA_BASE;
 
@@ -99,7 +100,7 @@ static void DspEq_WriteParams(volatile u16 *data, bool wantEq, bool resetStates)
     }
 
     u16 coefs[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND];
-    Equalizer_GetDspWords(coefs);
+    Equalizer_GetDspWords(profile, coefs);
     for (u32 band = 0; band < EQ_BAND_COUNT; band++)
         for (u32 i = 0; i < EQ_DSP_WORDS_PER_BAND; i++)
             block[DSPEQ_PARAM_COEFS + 8 * band + i] = coefs[band][i];
@@ -128,8 +129,14 @@ static bool DspEq_CodeAreaIsFree(volatile u16 *prog)
 
 static void DspEq_Tick(void)
 {
-    bool wantEq = !Equalizer_IsFlat();
+    // The equalizer settings follow the audio output: plugging in / removing headphones switches the profile
+    static EqProfile lastProfile = EQ_PROFILE_COUNT;
+    EqProfile profile = Equalizer_CurrentOutput();
+    bool wantEq = !Equalizer_IsFlat(profile);
     bool dirty = dspEqDirty;
+
+    if (profile != lastProfile)
+        dirty = true; // lastProfile is updated once the DSP has been given the new coefficients
 
     if (!DspEq_IsDspRunning())
         return;
@@ -151,7 +158,9 @@ static void DspEq_Tick(void)
         for (u32 i = 0; i < DSPEQ_CODE_WORDS; i++)
             prog[DSPEQ_CODE_BASE + i] = dspEqCode[i];
         __dsb();
-        DspEq_WriteParams(data, true, true);
+        DspEq_WriteParams(data, profile, true, true);
+        dspEqMagicSet = true;
+        lastProfile = profile;
         // Each hook is a single 16-bit write to the operand of a call, so the running DSP never sees a half-patched instruction
         prog[DSPEQ_HOOK_A_ADDR] = DSPEQ_HOOK_A_NEW;
         prog[DSPEQ_HOOK_B_ADDR] = DSPEQ_HOOK_B_NEW;
@@ -161,7 +170,8 @@ static void DspEq_Tick(void)
     else if (hookA == DSPEQ_HOOK_A_NEW && hookB == DSPEQ_HOOK_B_NEW && (dirty || data[DSPEQ_DATA_BASE] != (wantEq ? DSPEQ_MAGIC : 0)))
     {
         // Patched, settings changed (or the parameter block was lost)
-        bool lost = wantEq && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC;
+        bool lost = wantEq && dspEqMagicSet && data[DSPEQ_DATA_BASE] != DSPEQ_MAGIC;
+        bool enabling = wantEq && !dspEqMagicSet; // e.g. switching from a flat profile to an equalized one
         if (lost)
         {
             DspEq_CountEvent();
@@ -173,7 +183,9 @@ static void DspEq_Tick(void)
                 return;
             }
         }
-        DspEq_WriteParams(data, wantEq, lost);
+        DspEq_WriteParams(data, profile, wantEq, lost || enabling);
+        dspEqMagicSet = wantEq;
+        lastProfile = profile;
         dspEqDirty = false;
     }
 }

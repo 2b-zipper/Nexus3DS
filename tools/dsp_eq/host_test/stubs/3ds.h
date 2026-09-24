@@ -28,3 +28,5 @@ static inline FS_Path fsMakePath(int t, const void *d) { (void)d; FS_Path p = {t
 #define CORE_SYSTEM 1
 #define SYSCLOCK_ARM11 268111856LL
 static inline u64 svcGetSystemTick(void) { static u64 t; t += 268111856ULL / 10; return t; }
+extern bool g_hostHeadset;
+static inline bool osIsHeadsetConnected(void) { return g_hostHeadset; }

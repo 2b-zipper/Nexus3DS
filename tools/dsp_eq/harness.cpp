@@ -15,7 +15,7 @@
 #include <teakra/teakra.h>
 
 #ifdef DSPEQ_HOST_GLUE   // link host_test/host_glue.c: runs the real Rosalina equalizer code against the emulated DSP RAM
-extern "C" { void hosttest_set_gains(int, int, int); void hosttest_tick(unsigned char*); void hosttest_status(unsigned char*, unsigned*, unsigned*); }
+extern "C" { void hosttest_set_profile_gains(int, int, int, int); void hosttest_set_headset(int); void hosttest_set_gains(int, int, int); void hosttest_tick(unsigned char*); void hosttest_status(unsigned char*, unsigned*, unsigned*); }
 #endif
 using u8 = uint8_t; using u16 = uint16_t; using u32 = uint32_t;
 
@@ -187,12 +187,22 @@ int main(int argc, char** argv) {
         for (char* tok = strtok(e, ";"); tok && nLive < 8; tok = strtok(nullptr, ";"), ++nLive)
             sscanf(tok, "%d,%d,%d@%d", &liveB[nLive], &liveM[nLive], &liveH[nLive], &liveF[nLive]);
     }
+    // EQ_LIVE_HP="b,m,h@frame": headphone profile gains; EQ_HEADSET="frame:1;frame:0;...": plug / unplug headphones
+    int hpB = 0, hpM = 0, hpH = 0, hpF = -1;
+    if (getenv("EQ_LIVE_HP")) sscanf(getenv("EQ_LIVE_HP"), "%d,%d,%d@%d", &hpB, &hpM, &hpH, &hpF);
+    int hsFrame[8], hsState[8], nHs = 0;
+    if (getenv("EQ_HEADSET")) {
+        char* e = strdup(getenv("EQ_HEADSET"));
+        for (char* tok = strtok(e, ";"); tok && nHs < 8; tok = strtok(nullptr, ";"), ++nHs) sscanf(tok, "%d:%d", &hsFrame[nHs], &hsState[nHs]);
+    }
     bool liveTicking = false;
 #endif
     for (int fr = 0; fr < frames; ++fr) {
 #ifdef DSPEQ_HOST_GLUE
         for (int q = 0; q < nLive; ++q)
             if (fr == liveF[q]) { hosttest_set_gains(liveB[q], liveM[q], liveH[q]); liveTicking = true; }
+        if (fr == hpF) { hosttest_set_profile_gains(1, hpB, hpM, hpH); liveTicking = true; }
+        for (int q = 0; q < nHs; ++q) if (fr == hsFrame[q]) hosttest_set_headset(hsState[q]);
         if (liveTicking && fr % 20 == 0) {
             hosttest_tick(T->GetDspMemory());
             unsigned hook, magic; hosttest_status(T->GetDspMemory(), &hook, &magic);

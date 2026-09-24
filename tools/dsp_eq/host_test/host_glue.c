@@ -8,12 +8,26 @@ u8 *g_dspRam;
 u8 g_pdnDspCnt = 3;
 bool preTerminationRequested;
 
+bool g_hostHeadset;
+
+void hosttest_set_profile_gains(int profile, int bass, int mids, int high)
+{
+    Equalizer_SetGain((EqProfile)profile, EQ_BAND_BASS, bass);
+    Equalizer_SetGain((EqProfile)profile, EQ_BAND_MIDS, mids);
+    Equalizer_SetGain((EqProfile)profile, EQ_BAND_HIGHS, high);
+    DspEq_NotifyChanged();
+}
+
+// same gains for both outputs
 void hosttest_set_gains(int bass, int mids, int high)
 {
-    Equalizer_SetGain(EQ_BAND_BASS, bass);
-    Equalizer_SetGain(EQ_BAND_MIDS, mids);
-    Equalizer_SetGain(EQ_BAND_HIGHS, high);
-    DspEq_NotifyChanged();
+    hosttest_set_profile_gains(EQ_PROFILE_SPEAKERS, bass, mids, high);
+    hosttest_set_profile_gains(EQ_PROFILE_HEADPHONES, bass, mids, high);
+}
+
+void hosttest_set_headset(int connected)
+{
+    g_hostHeadset = connected != 0;
 }
 
 void hosttest_tick(u8 *dspRam)

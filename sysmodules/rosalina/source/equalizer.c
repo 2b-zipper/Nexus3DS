@@ -38,30 +38,46 @@
 #define EQ_HIGH_MID_HZ  4000.0f  // high shelf midpoint
 #define EQ_DSP_QBITS    12       // fractional bits of the DSP coefficients
 
-s8 equalizerGains[EQ_BAND_COUNT];
+static s8 equalizerGains[EQ_PROFILE_COUNT][EQ_BAND_COUNT];
 static bool equalizerConfigDone; // saved settings were loaded, or the user already changed them
 
-void Equalizer_SetGain(EqBand band, int gainDb)
+EqProfile Equalizer_CurrentOutput(void)
 {
-    if (band >= EQ_BAND_COUNT)
+    return osIsHeadsetConnected() ? EQ_PROFILE_HEADPHONES : EQ_PROFILE_SPEAKERS;
+}
+
+const char *Equalizer_ProfileName(EqProfile profile)
+{
+    return profile == EQ_PROFILE_HEADPHONES ? "Headphones" : "Speakers";
+}
+
+s8 Equalizer_GetGain(EqProfile profile, EqBand band)
+{
+    if (profile >= EQ_PROFILE_COUNT || band >= EQ_BAND_COUNT)
+        return 0;
+    return equalizerGains[profile][band];
+}
+
+void Equalizer_SetGain(EqProfile profile, EqBand band, int gainDb)
+{
+    if (profile >= EQ_PROFILE_COUNT || band >= EQ_BAND_COUNT)
         return;
-    equalizerGains[band] = (s8)CLAMP(gainDb, EQ_GAIN_MIN, EQ_GAIN_MAX);
+    equalizerGains[profile][band] = (s8)CLAMP(gainDb, EQ_GAIN_MIN, EQ_GAIN_MAX);
     equalizerConfigDone = true;
 }
 
-bool Equalizer_IsFlat(void)
+bool Equalizer_IsFlat(EqProfile profile)
 {
     for (int i = 0; i < EQ_BAND_COUNT; i++)
-        if (equalizerGains[i] != 0)
+        if (Equalizer_GetGain(profile, (EqBand)i) != 0)
             return false;
     return true;
 }
 
-void Equalizer_Reset(void)
+void Equalizer_Reset(EqProfile profile)
 {
     for (int i = 0; i < EQ_BAND_COUNT; i++)
-        equalizerGains[i] = 0;
-    equalizerConfigDone = true;
+        Equalizer_SetGain(profile, (EqBand)i, 0);
 }
 
 // First-order shelf, expressed as a biquad with b2 = a2 = 0. The pole/zero pair is placed symmetrically around the
@@ -106,18 +122,19 @@ static EqBiquad Equalizer_DesignPeak(int gainDb, float hz, float q)
     return (EqBiquad){(1.0f + alpha * a) / a0, -2.0f * c / a0, (1.0f - alpha * a) / a0, -2.0f * c / a0, (1.0f - alpha / a) / a0};
 }
 
-EqBiquad Equalizer_GetBiquad(EqBand band)
+EqBiquad Equalizer_GetBiquad(EqProfile profile, EqBand band)
 {
     static const EqBiquad flat = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    int gain = Equalizer_GetGain(profile, band);
 
-    if (band >= EQ_BAND_COUNT || equalizerGains[band] == 0)
+    if (band >= EQ_BAND_COUNT || gain == 0)
         return flat;
 
     switch (band)
     {
-        case EQ_BAND_BASS:  return Equalizer_DesignShelf(true, equalizerGains[band], EQ_BASS_MID_HZ);
-        case EQ_BAND_MIDS:  return Equalizer_DesignPeak(equalizerGains[band], EQ_MIDS_HZ, EQ_MIDS_Q);
-        default:            return Equalizer_DesignShelf(false, equalizerGains[band], EQ_HIGH_MID_HZ);
+        case EQ_BAND_BASS:  return Equalizer_DesignShelf(true, gain, EQ_BASS_MID_HZ);
+        case EQ_BAND_MIDS:  return Equalizer_DesignPeak(gain, EQ_MIDS_HZ, EQ_MIDS_Q);
+        default:            return Equalizer_DesignShelf(false, gain, EQ_HIGH_MID_HZ);
     }
 }
 
@@ -127,11 +144,11 @@ static u16 Equalizer_ToQ(float v)
     return (u16)(s16)CLAMP(r, -32768, 32767);
 }
 
-void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND])
+void Equalizer_GetDspWords(EqProfile profile, u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND])
 {
     for (int band = 0; band < EQ_BAND_COUNT; band++)
     {
-        EqBiquad f = Equalizer_GetBiquad((EqBand)band);
+        EqBiquad f = Equalizer_GetBiquad(profile, (EqBand)band);
         out[band][0] = Equalizer_ToQ(f.b0);
         out[band][1] = Equalizer_ToQ(f.b1);
         out[band][2] = Equalizer_ToQ(f.b2);
@@ -140,20 +157,22 @@ void Equalizer_GetDspWords(u16 out[EQ_BAND_COUNT][EQ_DSP_WORDS_PER_BAND])
     }
 }
 
-#define EQ_CONFIG_PATH  "/luma/equalizer.bin"
-#define EQ_CONFIG_MAGIC 0x31514545 // "EEQ1"
+#define EQ_CONFIG_PATH   "/luma/equalizer.bin"
+#define EQ_CONFIG_MAGIC1 0x31514545 // "EEQ1": one set of gains (used for both outputs)
+#define EQ_CONFIG_MAGIC2 0x32514545 // "EEQ2": one set per output
 
 typedef struct EqConfigFile {
     u32 magic;
-    s8 gains[EQ_BAND_COUNT];
-    u8 pad;
+    s8 gains[EQ_PROFILE_COUNT][EQ_BAND_COUNT];
+    u8 pad[2];
 } EqConfigFile;
 
 Result Equalizer_SaveConfig(void)
 {
-    EqConfigFile cfg = { .magic = EQ_CONFIG_MAGIC };
-    for (int i = 0; i < EQ_BAND_COUNT; i++)
-        cfg.gains[i] = equalizerGains[i];
+    EqConfigFile cfg = { .magic = EQ_CONFIG_MAGIC2 };
+    for (int p = 0; p < EQ_PROFILE_COUNT; p++)
+        for (int i = 0; i < EQ_BAND_COUNT; i++)
+            cfg.gains[p][i] = equalizerGains[p][i];
 
     IFile file;
     u64 total;
@@ -177,19 +196,30 @@ void Equalizer_LoadConfig(void)
         return;
 
     IFile file;
-    u64 total;
-    EqConfigFile cfg;
+    u64 total = 0;
+    EqConfigFile cfg = {0};
     Result res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, EQ_CONFIG_PATH), FS_OPEN_READ);
     if (R_FAILED(res))
         return; // no saved settings yet, or the SD card is not available yet: the caller may retry
 
     res = IFile_Read(&file, &total, &cfg, sizeof(cfg));
     IFile_Close(&file);
+    if (R_FAILED(res))
+        return;
 
-    if (R_SUCCEEDED(res) && total == sizeof(cfg) && cfg.magic == EQ_CONFIG_MAGIC)
+    if (total == sizeof(cfg) && cfg.magic == EQ_CONFIG_MAGIC2)
     {
-        for (int i = 0; i < EQ_BAND_COUNT; i++)
-            Equalizer_SetGain((EqBand)i, cfg.gains[i]);
+        for (int p = 0; p < EQ_PROFILE_COUNT; p++)
+            for (int i = 0; i < EQ_BAND_COUNT; i++)
+                Equalizer_SetGain((EqProfile)p, (EqBand)i, cfg.gains[p][i]);
+        equalizerConfigDone = true;
+    }
+    else if (total >= 4 + EQ_BAND_COUNT && cfg.magic == EQ_CONFIG_MAGIC1)
+    {
+        // older file: the same gains apply to both outputs
+        for (int p = 0; p < EQ_PROFILE_COUNT; p++)
+            for (int i = 0; i < EQ_BAND_COUNT; i++)
+                Equalizer_SetGain((EqProfile)p, (EqBand)i, cfg.gains[0][i]);
         equalizerConfigDone = true;
     }
 }
