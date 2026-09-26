@@ -17,4 +17,7 @@ typedef struct
     uint8_t loaded;
     uint8_t codeProtected;
     uint8_t reserved[2];
+    uint32_t pluginCodeSize;
+    uint32_t pluginDataSize;
+    uint32_t pluginBssSize;
 } SysPluginEntry;

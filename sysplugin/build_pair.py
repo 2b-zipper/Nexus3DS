@@ -140,7 +140,6 @@ def main():
         run_make(ROOT / "k11_extension")
 
         if not generate_entry_header():
-            print(f"sysplugin pair converged after pass {pass_number}")
             return
 
         print(f"K11 entry changed on pass {pass_number}; rebuilding both consumers")
