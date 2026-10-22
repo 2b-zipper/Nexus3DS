@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define SYSPLUGIN_K11_ENTRY_MAGIC 0x2131314B5053334EULL
+
 typedef struct
 {
     char name[256];

@@ -9,6 +9,7 @@
 #include "3dsx.h"
 #include "hbldr.h"
 #include "SysPluginLoaderEntryGenerated.h"
+#include "sysplugin_entry.h"
 
 u32 config, multiConfig, bootConfig;
 bool isN3DS, isSdMode, nextGamePatchDisabled, isLumaWithKext;
@@ -112,6 +113,14 @@ typedef struct
 
 typedef Result (*SysPluginLoaderEntry)(const SysPluginHost *, u32, u32, u32, bool);
 
+static bool isSysPluginLoaderEntryValid(SysPluginLoaderEntry entry)
+{
+    const volatile u32 *magic = (const volatile u32 *)((u32)entry - 8u);
+
+    return magic[0] == (u32)SYSPLUGIN_K11_ENTRY_MAGIC &&
+           magic[1] == (u32)(SYSPLUGIN_K11_ENTRY_MAGIC >> 32);
+}
+
 static const SysPluginHost syspluginHost =
 {
     FSUSER_OpenArchive,
@@ -157,13 +166,16 @@ void initSystem(void)
         const SysPluginLoaderEntry entry = (SysPluginLoaderEntry)(
             isN3DS ? SYSPLUGIN_LOADER_ENTRY_N3DS : SYSPLUGIN_LOADER_ENTRY_O3DS
         );
-        (void)entry(
-            &syspluginHost,
-            LOADER_SYSPLUGIN_MAGIC,
-            rangeLow,
-            0x1F000000u,
-            true
-        );
+        if (isSysPluginLoaderEntryValid(entry))
+        {
+            (void)entry(
+                &syspluginHost,
+                LOADER_SYSPLUGIN_MAGIC,
+                rangeLow,
+                0x1F000000u,
+                true
+            );
+        }
     }
 
     assertSuccess(FSUSER_SetPriority(0));

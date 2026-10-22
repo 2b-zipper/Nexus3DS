@@ -52,7 +52,7 @@ def write_bootstrap_pair_header():
 
 
 def symbol_values(elf_path):
-    wanted = {"__start__", "__end__", "SysPluginLoader_Main"}
+    wanted = {"__start__", "__end__", "SysPluginLoader_Magic", "SysPluginLoader_Main"}
     values = {}
 
     for symbol in read_symbols(elf_path):
@@ -78,7 +78,14 @@ def generate_entry_header():
     values = symbol_values(K11_ELF)
     start = values["__start__"]
     end = values["__end__"]
+    magic = values["SysPluginLoader_Magic"]
     entry = values["SysPluginLoader_Main"]
+
+    if entry - magic != 8:
+        raise SystemExit(
+            f"K11 sysplugin magic is not immediately before entry: "
+            f"magic 0x{magic:X}, entry 0x{entry:X}"
+        )
 
     if start != K11_VA:
         raise SystemExit(f"K11 __start__ is 0x{start:X}, expected 0x{K11_VA:X}")

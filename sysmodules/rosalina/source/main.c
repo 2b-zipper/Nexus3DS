@@ -51,6 +51,7 @@
 #include "task_runner.h"
 #include "plugin.h"
 #include "SysPluginLoaderEntryGenerated.h"
+#include "sysplugin_entry.h"
 
 bool isN3DS;
 bool wifiOnBeforeSleep;
@@ -102,6 +103,14 @@ typedef struct
 } SysPluginHost;
 
 typedef Result (*SysPluginLoaderEntry)(const SysPluginHost *, u32, u32, u32, bool);
+
+static bool isSysPluginLoaderEntryValid(SysPluginLoaderEntry entry)
+{
+    const volatile u32 *magic = (const volatile u32 *)((u32)entry - 8u);
+
+    return magic[0] == (u32)SYSPLUGIN_K11_ENTRY_MAGIC &&
+           magic[1] == (u32)(SYSPLUGIN_K11_ENTRY_MAGIC >> 32);
+}
 
 static const SysPluginHost syspluginHost =
 {
@@ -156,13 +165,16 @@ void initSystem(void)
         const SysPluginLoaderEntry entry = (SysPluginLoaderEntry)(
             isN3DS ? SYSPLUGIN_LOADER_ENTRY_N3DS : SYSPLUGIN_LOADER_ENTRY_O3DS
         );
-        (void)entry(
-            &syspluginHost,
-            ROSALINA_SYSPLUGIN_MAGIC,
-            0x10000000u,
-            0x14000000u,
-            false
-        );
+        if (isSysPluginLoaderEntryValid(entry))
+        {
+            (void)entry(
+                &syspluginHost,
+                ROSALINA_SYSPLUGIN_MAGIC,
+                0x10000000u,
+                0x14000000u,
+                false
+            );
+        }
     }
 
     if (R_FAILED(FSUSER_SetPriority(-16)))

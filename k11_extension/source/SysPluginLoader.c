@@ -1,6 +1,7 @@
 #include "SysPluginLoader.h"
 #include "svc/SysPlugin3nrGenerated.h"
 #include "sysplugin_entry.h"
+#include "synchronization.h"
 #include <string.h>
 
 #define PLUGIN_HEADER_SIZE       0x30u
@@ -87,11 +88,32 @@ typedef SysPluginEntry SysPlugin;
 static const char SP_PLUGINS_DIR[] = "/luma/plugins";
 static const char SP_THREE_NR_PATH[] = "/boot.3nr";
 static const char SP_THREE_NR_KEYED_PATH[] = SYSPLUGIN_3NR_KEYED_PATH;
-static volatile bool spLocked = true;
+static volatile s32 spLocked = 0;
+
+static void SP_Lock(void)
+{
+    while (1)
+    {
+        if (__ldrex((s32 *)&spLocked) == 0)
+        {
+            if (!__strex((s32 *)&spLocked, 1))
+            {
+                __dmb();
+                return;
+            }
+        }
+        else
+            __clrex();
+
+        svcSleepThread(1000000LL);
+    }
+}
 
 __attribute__((noinline)) static Result SP_Unlock(Result result)
 {
-    spLocked = false;
+    __dmb();
+    spLocked = 0;
+    __dmb();
     return result;
 }
 
@@ -784,6 +806,18 @@ static bool SP_RelocatePlugin(
     return !failed && totalRead == plugin->pluginPtrSize;
 }
 
+__asm__(
+    ".pushsection .text.SysPluginLoader_Main,\"ax\",%progbits\n"
+    ".balign 4\n"
+    ".global SysPluginLoader_Magic\n"
+    ".type SysPluginLoader_Magic, %object\n"
+    "SysPluginLoader_Magic:\n"
+    ".word 0x5053334E\n"
+    ".word 0x2131314B\n"
+    ".size SysPluginLoader_Magic, .-SysPluginLoader_Magic\n"
+    ".popsection\n"
+);
+
 Result SysPluginLoader_Main(
     const SysPluginHost *host,
     u32 pluginMagic,
@@ -809,11 +843,9 @@ Result SysPluginLoader_Main(
     u32 pluginCount = 0;
     Handle selfProcess = 0;
 
-    if (!unlock)
-    {
-        while (spLocked)
-            svcSleepThread(1000000LL);
-    }
+    (void)unlock;
+
+    SP_Lock();
 
     {
         Result allocResult = SP_AllocPages(
