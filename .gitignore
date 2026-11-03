@@ -7,6 +7,9 @@ sysmodules/rosalina/build
 chainloader/build
 exceptions/arm9/build
 exceptions/arm11/build
+sysplugin/
+boot.3nr
+k11_extension/include/svc/SysPlugin3nrGenerated.h
 *.bin
 *.firm
 *.o
