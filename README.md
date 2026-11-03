@@ -88,7 +88,7 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * Save screenshots in date folders
 * Combine top/bottom screenshots (saved with _cmb suffix)
-* Use Fahrenheit for temperature display (defaults to Celsius)
+* Use Fahrenheit for temperature display (included to luma now)
 * Use 12-hour clock format in Rosalina menu (defaults to 24-hour)
 
 **Expert Zone:**

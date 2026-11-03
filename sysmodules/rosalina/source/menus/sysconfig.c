@@ -41,8 +41,8 @@ static Menu audioRoutingMenu = {
     "Audio routing menu",
     {
         { "Auto (default)", METHOD, .method = &SysConfigMenu_SetAudioRoutingAuto },
-        { "Force headphones (reapply on HP ins./rem.)", METHOD, .method = &SysConfigMenu_SetAudioRoutingHeadphones },
-        { "Force speakers (reapply on HP ins./rem.)", METHOD, .method = &SysConfigMenu_SetAudioRoutingSpeakers },
+        { "Force headphones (reapply on headset ins./rem.)", METHOD, .method = &SysConfigMenu_SetAudioRoutingHeadphones },
+        { "Force speakers (reapply on headset ins./rem.)", METHOD, .method = &SysConfigMenu_SetAudioRoutingSpeakers },
         {},
     }
 };
@@ -99,7 +99,7 @@ static void SysConfigMenu_SetLedMasterBrightnessOverrideValue(u8 override)
 
 // Character grid positions (10px margins, same as the title)
 #define SYSCONFIG_COL(x) (10 + (x) * SPACING_X)
-#define SYSCONFIG_ROW(y) (10 + (y) * SPACING_Y)
+#define SYSCONFIG_ROW(y) (20 + (y) * SPACING_Y)
 
 static void SysConfigMenu_DrawOverrideStatus(u8 override)
 {

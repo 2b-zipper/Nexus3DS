@@ -259,7 +259,6 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         (int)((cfg->extraConfigFlags >> 3) & 1),
         (int)((cfg->extraConfigFlags >> 4) & 1),
         (int)((cfg->extraConfigFlags >> 5) & 1),
-        (int)((cfg->extraConfigFlags >> 6) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         topScreenFilterGammaStrs[0], topScreenFilterGammaStrs[1], topScreenFilterGammaStrs[2],
@@ -355,8 +354,7 @@ Result LumaConfig_SaveSettings(void)
     if (configExtra.cutSleepWifi) configData.extraConfigFlags |= 1 << 2;
     if (configExtra.screenshotDateFolders) configData.extraConfigFlags |= 1 << 3;
     if (configExtra.screenshotCombined) configData.extraConfigFlags |= 1 << 4;
-    if (configExtra.temperatureUnit) configData.extraConfigFlags |= 1 << 5;
-    if (configExtra.use12HourClock) configData.extraConfigFlags |= 1 << 6;
+    if (configExtra.use12HourClock) configData.extraConfigFlags |= 1 << 5;
 
     size_t n = LumaConfig_SaveLumaIniConfigToStr(inibuf, &configData);
 

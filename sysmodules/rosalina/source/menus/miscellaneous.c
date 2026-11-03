@@ -88,9 +88,9 @@ int lastNtpTzOffset = 0;
 void MiscellaneousMenu_UpdateTemperatureUnitEntry(void)
 {
     if (lumaMcuConfig.flags & MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT)
-        miscellaneousMenu.items[6].title = "Show temperature in Celsius   ";
+        miscellaneousMenu.items[7].title = "Show temperature in Celsius   ";
     else
-        miscellaneousMenu.items[6].title = "Show temperature in Fahrenheit";
+        miscellaneousMenu.items[7].title = "Show temperature in Fahrenheit";
 }
 
 void MiscellaneousMenu_ToggleTemperatureUnit(void)
@@ -241,11 +241,10 @@ void MiscellaneousMenu_InputRedirection(void)
         Draw_Lock();
         Draw_DrawMenuFrame("Miscellaneous options menu");
 
-        u32 posY = 40;
         if (!wasEnabled && cantStart)
-            Draw_DrawString(20, posY, COLOR_WHITE, "Can't start the input redirection before the system has finished loading.");
+            Draw_DrawString(20, 40, COLOR_WHITE, "Can't start the input redirection before the system has finished loading.");
         else if (!wasEnabled) {
-            Draw_DrawString(20, posY, COLOR_WHITE, "Starting InputRedirection...");
+            Draw_DrawString(20, 40, COLOR_WHITE, "Starting InputRedirection...");
             if (!done) {
                 res = InputRedirection_DoOrUndoPatches();
                 if (R_SUCCEEDED(res)) {
@@ -270,15 +269,15 @@ void MiscellaneousMenu_InputRedirection(void)
                 done = true;
             }
             if (res == 0)
-                posY = Draw_DrawString(20, posY + SPACING_Y, COLOR_GREEN, "Starting InputRedirection... OK.");
+                Draw_DrawString(20, 40, COLOR_GREEN, "Starting InputRedirection... OK.");
             else
-                Draw_DrawString(10, 30, COLOR_WHITE, buf);
+                Draw_DrawString(10, 40, COLOR_RED, buf);
         }
         else
         {
             if(res == 0)
             {
-                u32 posY = 30;
+                u32 posY = 40;
                 posY = Draw_DrawString(10, posY, COLOR_WHITE, "InputRedirection stopped successfully.\n\n");
                 if (isN3DS)
                 {
@@ -476,9 +475,11 @@ void MiscellaneousMenu_DumpDspFirm(void)
         if (R_SUCCEEDED(res))
             Draw_DrawString(20, 40, COLOR_GREEN, "DSP firm. successfully written to\n/3ds/dspfirm.cdc on the SD card.");
         else
-            Draw_DrawFormattedString(20, 40, COLOR_RED,
+            Draw_DrawFormattedString(
+                20, 40, COLOR_RED,
                 "Operation failed (0x%08lx).\n\nMake sure that Home Menu is running and that\nyour SD card is inserted.",
-                res);
+                res
+            );
         Draw_DrawString(20, 100, COLOR_GRAY, "Press B to go back.");
         Draw_FlushFramebuffer();
         Draw_Unlock();

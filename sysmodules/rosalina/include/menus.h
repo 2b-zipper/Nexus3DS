@@ -39,8 +39,6 @@ void RosalinaMenu_SaveSettings(void);
 void RosalinaMenu_ReturnToHomeMenu(void);
 void RosalinaMenu_Cheats(void);
 
-void RosalinaMenu_ReturnToHomeMenu(void);
-
 void RosalinaMenu_PowerOffOrReboot(void);
 
 void RosalinaMenu_ShowSystemInfo();

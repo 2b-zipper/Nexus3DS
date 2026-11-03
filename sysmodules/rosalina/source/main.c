@@ -30,7 +30,6 @@
 #include "service_manager.h"
 #include "errdisp.h"
 #include "utils.h"
-#include "luma_config.h"
 #include "sleep.h"
 #include "MyThread.h"
 #include "menus/miscellaneous.h"

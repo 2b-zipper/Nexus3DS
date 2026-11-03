@@ -543,11 +543,6 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 4) : cfg->extraConfigFlags & ~(1 << 4);
             return 1;
-        } else if (strcmp(name, "temperature_unit_fahrenheit") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 5) : cfg->extraConfigFlags & ~(1 << 5);
-            return 1;
         } else if (strcmp(name, "use_12_hour_clock") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
@@ -754,7 +749,6 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)((cfg->extraConfigFlags >> 3) & 1),
         (int)((cfg->extraConfigFlags >> 4) & 1),
         (int)((cfg->extraConfigFlags >> 5) & 1),
-        (int)((cfg->extraConfigFlags >> 6) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         topScreenFilterGammaStrs[0], topScreenFilterGammaStrs[1], topScreenFilterGammaStrs[2],
@@ -1242,7 +1236,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         { .visible = true, .page = 0 }, // Splash duration
         { .visible = true, .page = 0 }, // PIN
         { .visible = ISN3DS, .page = 0 }, // n3ds CPU
-        { .visible = true, .page = 1 }, // Autoboot
+        { .visible = true, .page = 0 }, // Autoboot
     };
 
     struct singleOption singleOptions[] = {

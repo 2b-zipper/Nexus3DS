@@ -4,7 +4,6 @@ typedef struct {
 	bool cutSleepWifi;
 	bool screenshotDateFolders;
 	bool screenshotCombined;
-	bool temperatureUnit;
 	bool use12HourClock;
 } config_extra;
 

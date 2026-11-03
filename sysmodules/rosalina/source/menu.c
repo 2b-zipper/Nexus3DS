@@ -49,9 +49,6 @@
 #include "volume.h"
 #include "pmdbgext.h"
 
-// Temperature conversion macros
-#define CELSIUS_TO_FAHRENHEIT(c) ((c) * 9 / 5 + 32)
-
 //#define ROSALINA_MENU_SELF_SCREENSHOT 1 // uncomment this to enable the feature
 
 u32 menuCombo = 0;
@@ -713,47 +710,10 @@ void menuShow(Menu *root)
 
     bool menuComboReleased = false;
 
-    u8 prevVolumeSlider[2] = {0};
-    s8 prevVolumeOverride = currVolumeSliderOverride;
-    bool firstRun = true;
-    u32 updateCounter = 0;
-
     do
     {
         u32 pressed = waitInputWithTimeout(30);
         numItems = menuCountItems(currentMenu);
-        updateCounter++;
-
-        if (firstRun || currVolumeSliderOverride != prevVolumeOverride)
-        {
-            prevVolumeOverride = currVolumeSliderOverride;
-            firstRun = false;
-        }
-        else if (pressed == 0)
-        {
-            if (isServiceUsable("mcu::HWC"))
-            {
-                u8 currentVolumeSlider[2];
-                
-                Handle *mcuHwcHandlePtr = mcuHwcGetSessionHandle();
-                Handle oldHandle = *mcuHwcHandlePtr;
-                *mcuHwcHandlePtr = 0;
-                
-                if (R_SUCCEEDED(srvGetServiceHandle(mcuHwcHandlePtr, "mcu::HWC")) ||
-                    R_SUCCEEDED(svcControlService(SERVICEOP_STEAL_CLIENT_SESSION, mcuHwcHandlePtr, "mcu::HWC")))
-                {
-                    if (R_SUCCEEDED(MCUHWC_ReadRegister(0x09, currentVolumeSlider + 1, 1)))
-                    {
-                        if (currentVolumeSlider[1] != prevVolumeSlider[1])
-                        {
-                            prevVolumeSlider[1] = currentVolumeSlider[1];
-                        }
-                    }
-                    svcCloseHandle(*mcuHwcHandlePtr);
-                }
-                *mcuHwcHandlePtr = oldHandle;
-            }
-        }
 
         if(!menuComboReleased && (scanHeldKeys() & menuCombo) != menuCombo)
         {

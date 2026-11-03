@@ -170,38 +170,6 @@ void RosalinaMenu_SaveSettings(void)
     while (!(waitInput() & KEY_B) && !menuShouldExit);
 }
 
-void RosalinaMenu_ReturnToHomeMenu(void)
-{
-    Draw_Lock();
-    Draw_ClearFramebuffer();
-    Draw_FlushFramebuffer();
-    Draw_Unlock();
-
-    do
-    {
-        Draw_Lock();
-        Draw_DrawMenuFrame("Return to HOME Menu");
-        Draw_DrawString(10, 40, COLOR_WHITE, "Simulate pressing the HOME button.");
-        Draw_DrawString(10, 50, COLOR_WHITE, "Useful if your HOME button is broken.");
-        Draw_DrawString(10, 70, COLOR_WHITE, "Press A to proceed.");
-        Draw_DrawString(10, 80, COLOR_WHITE, "Press B to go back.");
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-
-        u32 pressed = waitInputWithTimeout(1000);
-
-        if (pressed & KEY_A)
-        {
-            // Simulate HOME button press
-            srvPublishToSubscriber(0x204, 0);
-            return;
-        }
-        else if (pressed & KEY_B)
-            return;
-    }
-    while (!menuShouldExit);
-}
-
 void RosalinaMenu_PowerOffOrReboot(void)
 {
     Draw_Lock();
@@ -508,8 +476,8 @@ void RosalinaMenu_ReturnToHomeMenu(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "Return to HOME Menu");
-        Draw_DrawString(10, 30, COLOR_WHITE, "Press A to confirm.\nPress B to go back.");
+        Draw_DrawMenuFrame("Return to HOME Menu");
+        Draw_DrawString(10, 40, COLOR_WHITE, "Press A to confirm.\nPress B to go back.");
         Draw_FlushFramebuffer();
         Draw_Unlock();
 
