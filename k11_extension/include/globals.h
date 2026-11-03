@@ -131,10 +131,8 @@ extern void* (*kAlloc)(FcramDescriptor *fcramDesc, u32 nbPages, u32 alignment, u
 typedef struct ScreenFiltersCfgData {
     u16 cct;
     bool invert;
-    u8 colorCurveCorrection;
-    s64 gammaEnc;
-    s64 contrastEnc;
-    s64 brightnessEnc;
+    s64 gammaEnc[3];    // per-channel (R, G, B)
+    s64 contrastEnc[3]; // per-channel (R, G, B)
 } ScreenFiltersCfgData;
 
 typedef struct CfwInfo
@@ -151,7 +149,10 @@ typedef struct CfwInfo
     u16 configFormatVersionMajor, configFormatVersionMinor;
     u32 config, multiConfig, bootConfig;
     u32 splashDurationMsec;
-    s8 volumeSliderOverride;
+    u8 mcuConfigFlags;
+    u8 volumeSliderOverride;
+    s8 volumeSliderOverrideStereoBalance;
+    u8 ledMasterBrightnessOverride;
     u64 hbldr3dsxTitleId;
     u32 rosalinaMenuCombo;
     u32 pluginLoaderFlags;
@@ -163,6 +164,7 @@ typedef struct CfwInfo
 
     u64 autobootTwlTitleId;
     u8 autobootCtrAppmemtype;
+    bool autobootCtrUseNs;
 
     u32 extraConfigFlags;
     u32 homeButtonSimFlags;
@@ -194,6 +196,7 @@ typedef enum
 }   PLG_CFG_STATUS;
 
 void    PLG_SignalEvent(u32 event);
+void    PLG_SignalEventWithTimeout(u32 event, s64 timeout);
 void    PLG__WakeAppThread(void);
 u32     PLG_GetStatus(void);
 KLinkedList*    KLinkedList__Initialize(KLinkedList *list);

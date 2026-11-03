@@ -209,6 +209,7 @@ u32 waitCombo(void)
 
 static MyThread menuThread;
 static u8 CTR_ALIGN(8) menuThreadStack[0x3000];
+static bool menuCloseRequested = false;
 
 static float batteryPercentage;
 static float batteryVoltage;
@@ -486,6 +487,7 @@ void menuEnter(void)
     Draw_Lock();
     if(!menuShouldExit && menuRefCount == 0)
     {
+        menuCloseRequested = false;
         menuRefCount++;
         svcKernelSetState(0x10000, 2 | 1);
         svcSleepThread(5 * 1000 * 100LL);
@@ -514,6 +516,11 @@ void menuLeave(void)
         svcKernelSetState(0x10000, 2 | 1);
     }
     Draw_Unlock();
+}
+
+void menuRequestClose(void)
+{
+    menuCloseRequested = true;
 }
 
 
@@ -646,22 +653,19 @@ static void menuDraw(Menu *menu, u32 selected)
         u32 percentageInt = (u32)batteryPercentage;
         u32 percentageFrac = (u32)(batteryPercentage * 10.0f) % 10u;
 
+        // Temperature is an integer amount of degrees Celsius. 9C/5 has a fractional part in {0, 0.2, ..., 0.8},
+        // so adding 2/5 before truncating rounds to nearest (no ties)
+        bool fahrenheit = (lumaMcuConfig.flags & MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT) != 0;
+        int temperature = fahrenheit ? (9 * batteryTemperature + 2) / 5 + 32 : batteryTemperature;
+
+        // Temperature is padded to 3 chars in both units (F >= 32, so at least 2 digits) so that the string length
+        // doesn't change when the unit is toggled or when going above 99F
         char buf[32];
-        int n;
-        if (configExtra.temperatureUnit) {
-            u8 tempFahrenheit = CELSIUS_TO_FAHRENHEIT(batteryTemperature);
-            n = sprintf(
-                buf, "   %02hhu\xF8""F  %lu.%02luV  %lu.%lu%%", tempFahrenheit, // CP437
-                voltageInt, voltageFrac,
-                percentageInt, percentageFrac
-            );
-        } else {
-            n = sprintf(
-                buf, "   %02hhu\xF8""C  %lu.%02luV  %lu.%lu%%", batteryTemperature, // CP437
-                voltageInt, voltageFrac,
-                percentageInt, percentageFrac
-            );
-        }
+        int n = sprintf(
+            buf, fahrenheit ? "  %3d\xF8""F  %lu.%02luV  %lu.%lu%%" : "   %02d\xF8""C  %lu.%02luV  %lu.%lu%%", temperature, // CP437
+            voltageInt, voltageFrac,
+            percentageInt, percentageFrac
+        );
         Draw_DrawString(SCREEN_BOT_WIDTH - 10 - SPACING_X * n, SCREEN_BOT_HEIGHT - 30, COLOR_CYAN, buf);
     }
 
@@ -697,6 +701,8 @@ void menuShow(Menu *root)
     u32 numItems = menuCountItems(currentMenu);
     if (menuItemIsHidden(&currentMenu->items[selectedItem]))
         selectedItem = menuAdvanceCursor(selectedItem, numItems, 1);
+
+    menuCloseRequested = false;
 
     Draw_Lock();
     Draw_ClearFramebuffer();
@@ -781,6 +787,9 @@ void menuShow(Menu *root)
                     break;
             }
 
+            if (menuCloseRequested)
+                break;
+
             Draw_Lock();
             Draw_ClearFramebuffer();
             Draw_FlushFramebuffer();
@@ -835,5 +844,5 @@ void menuShow(Menu *root)
         menuDraw(currentMenu, selectedItem);
         Draw_Unlock();
     }
-    while(!menuShouldExit);
+    while(!menuShouldExit && !menuCloseRequested);
 }

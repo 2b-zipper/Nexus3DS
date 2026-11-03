@@ -27,6 +27,7 @@
 #define _GNU_SOURCE // for strchrnul
 
 #include <assert.h>
+#include <stddef.h>
 #include <strings.h>
 #include "config.h"
 #include "memory.h"
@@ -53,7 +54,8 @@ ConfigurationStatus needConfig;
 static CfgData oldConfig;
 
 static CfgDataMcu configDataMcu;
-static_assert(sizeof(CfgDataMcu) > 0, "wrong data size");
+// Must not overlap with other data stored in the 200-byte MCU free register area (e.g. at offset 188, u32)
+static_assert(sizeof(CfgDataMcu) == 8, "wrong data size");
 
 // INI parsing
 // ===========================================================
@@ -335,6 +337,22 @@ static int encodedFloatToString(char *out, s64 val)
     return n;
 }
 
+// e.g. "screen_filters_top_gamma_g" with prefix "screen_filters_top_gamma_" -> 1
+static int getScreenFilterChannelFromOptionName(const char *name, const char *prefix)
+{
+    size_t n = strlen(prefix);
+    if (strncmp(name, prefix, n) != 0 || name[n] == '\0' || name[n + 1] != '\0') {
+        return -1;
+    }
+
+    switch (name[n]) {
+        case 'r': return 0;
+        case 'g': return 1;
+        case 'b': return 2;
+        default: return -1;
+    }
+}
+
 static bool hasIniParseError = false;
 static int iniParseErrorLine = 0;
 
@@ -539,65 +557,46 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(-1);
         }
     } else if (strcmp(section, "screen_filters") == 0) {
+        int ch;
         if (strcmp(name, "screen_filters_top_cct") == 0) {
             s64 opt;
             CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 1000, 25100));
             cfg->topScreenFilter.cct = (u32)opt;
             return 1;
-        } else if (strcmp(name, "screen_filters_top_gamma") == 0) {
+        } else if ((ch = getScreenFilterChannelFromOptionName(name, "screen_filters_top_gamma_")) >= 0) {
+            s64 opt;
+            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 4 * FLOAT_CONV_MULT));
+            cfg->topScreenFilter.gammaEnc[ch] = opt;
+            return 1;
+        } else if ((ch = getScreenFilterChannelFromOptionName(name, "screen_filters_top_contrast_")) >= 0) {
             s64 opt;
             CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 8 * FLOAT_CONV_MULT));
-            cfg->topScreenFilter.gammaEnc = opt;
-            return 1;
-        } else if (strcmp(name, "screen_filters_top_contrast") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 255 * FLOAT_CONV_MULT));
-            cfg->topScreenFilter.contrastEnc = opt;
-            return 1;
-        } else if (strcmp(name, "screen_filters_top_brightness") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, -1 * FLOAT_CONV_MULT, 1 * FLOAT_CONV_MULT));
-            cfg->topScreenFilter.brightnessEnc = opt;
+            cfg->topScreenFilter.contrastEnc[ch] = opt;
             return 1;
         } else if (strcmp(name, "screen_filters_top_invert") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->topScreenFilter.invert = opt;
             return 1;
-        } else if (strcmp(name, "screen_filters_top_color_curve_adj") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 0, 2));
-            cfg->topScreenFilter.colorCurveCorrection = (u8)opt;
-            return 1;
         } else if (strcmp(name, "screen_filters_bot_cct") == 0) {
             s64 opt;
             CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 1000, 25100));
             cfg->bottomScreenFilter.cct = (u32)opt;
             return 1;
-        } else if (strcmp(name, "screen_filters_bot_gamma") == 0) {
+        } else if ((ch = getScreenFilterChannelFromOptionName(name, "screen_filters_bot_gamma_")) >= 0) {
+            s64 opt;
+            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 4 * FLOAT_CONV_MULT));
+            cfg->bottomScreenFilter.gammaEnc[ch] = opt;
+            return 1;
+        } else if ((ch = getScreenFilterChannelFromOptionName(name, "screen_filters_bot_contrast_")) >= 0) {
             s64 opt;
             CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 8 * FLOAT_CONV_MULT));
-            cfg->bottomScreenFilter.gammaEnc = opt;
-            return 1;
-        } else if (strcmp(name, "screen_filters_bot_contrast") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, 0, 255 * FLOAT_CONV_MULT));
-            cfg->bottomScreenFilter.contrastEnc = opt;
-            return 1;
-        } else if (strcmp(name, "screen_filters_bot_brightness") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecFloatOption(&opt, value, -1 * FLOAT_CONV_MULT, 1 * FLOAT_CONV_MULT));
-            cfg->bottomScreenFilter.brightnessEnc = opt;
+            cfg->bottomScreenFilter.contrastEnc[ch] = opt;
             return 1;
         } else if (strcmp(name, "screen_filters_bot_invert") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->bottomScreenFilter.invert = opt;
-            return 1;
-        } else if (strcmp(name, "screen_filters_bot_color_curve_adj") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 0, 2));
-            cfg->bottomScreenFilter.colorCurveCorrection = (u8)opt;
             return 1;
         } else {
             CHECK_PARSE_OPTION(-1);
@@ -613,29 +612,17 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 0, 4));
             cfg->autobootCtrAppmemtype = (u8)opt;
             return 1;
+        } else if (strcmp(name, "autoboot_3ds_use_ns") == 0) {
+            bool opt;
+            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
+            cfg->autobootCtrUseNs = opt;
+            return 1;
         } else {
             CHECK_PARSE_OPTION(-1);
         }
     } else if (strcmp(section, "misc") == 0) {
-        if (strcmp(name, "force_audio_output") == 0) {
-            if (strcasecmp(value, "off") == 0) {
-                cfg->multiConfig |= 0 << (2 * (u32)FORCEAUDIOOUTPUT);
-                return 1;
-            } else if (strcasecmp(value, "headphones") == 0) {
-                cfg->multiConfig |= 1 << (2 * (u32)FORCEAUDIOOUTPUT);
-                return 1;
-            } else if (strcasecmp(value, "speakers") == 0) {
-                cfg->multiConfig |= 2 << (2 * (u32)FORCEAUDIOOUTPUT);
-                return 1;
-            } else {
-                CHECK_PARSE_OPTION(-1);
-            }
-        } else if (strcmp(name, "volume_slider_override") == 0) {
-            s64 opt;
-            CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, -1, 100));
-            cfg->volumeSliderOverride = (s8)opt;
-            return 1;
-        } else if (strcmp(name, "hide_return_to_home_menu") == 0) {
+        // TODO: move these to mcu
+        if (strcmp(name, "hide_return_to_home_menu") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
             cfg->homeButtonSimFlags = opt ? cfg->homeButtonSimFlags | (1 << 0) : cfg->homeButtonSimFlags & ~(1 << 0);
@@ -682,7 +669,6 @@ static size_t saveLumaIniConfigToStr(char *out)
     const char *splashDurationPresetStr;
     const char *n3dsCpuStr;
     const char *autobootModeStr;
-    const char *forceAudioOutputStr;
 
     switch (MULTICONFIG(SPLASH)) {
         default: case 0: splashPosStr = "off"; break;
@@ -710,12 +696,6 @@ static size_t saveLumaIniConfigToStr(char *out)
         case 2: autobootModeStr = "dsi"; break;
     }
 
-    switch (MULTICONFIG(FORCEAUDIOOUTPUT)) {
-        default: case 0: forceAudioOutputStr = "off"; break;
-        case 1: forceAudioOutputStr = "headphones"; break;
-        case 2: forceAudioOutputStr = "speakers"; break;
-    }
-
     if (NEXUS_VERSION_BUILD != 0) {
         sprintf(lumaVerStr, "Nexus3DS v%d.%d.%d", (int)NEXUS_VERSION_MAJOR, (int)NEXUS_VERSION_MINOR, (int)NEXUS_VERSION_BUILD);
     } else {
@@ -735,19 +715,16 @@ static size_t saveLumaIniConfigToStr(char *out)
     static const int pinOptionToDigits[] = { 0, 4, 6, 8 };
     int pinNumDigits = pinOptionToDigits[MULTICONFIG(PIN)];
 
-    char topScreenFilterGammaStr[32];
-    char topScreenFilterContrastStr[32];
-    char topScreenFilterBrightnessStr[32];
-    encodedFloatToString(topScreenFilterGammaStr, cfg->topScreenFilter.gammaEnc);
-    encodedFloatToString(topScreenFilterContrastStr, cfg->topScreenFilter.contrastEnc);
-    encodedFloatToString(topScreenFilterBrightnessStr, cfg->topScreenFilter.brightnessEnc);
-
-    char bottomScreenFilterGammaStr[32];
-    char bottomScreenFilterContrastStr[32];
-    char bottomScreenFilterBrightnessStr[32];
-    encodedFloatToString(bottomScreenFilterGammaStr, cfg->bottomScreenFilter.gammaEnc);
-    encodedFloatToString(bottomScreenFilterContrastStr, cfg->bottomScreenFilter.contrastEnc);
-    encodedFloatToString(bottomScreenFilterBrightnessStr, cfg->bottomScreenFilter.brightnessEnc);
+    char topScreenFilterGammaStrs[3][32];
+    char topScreenFilterContrastStrs[3][32];
+    char bottomScreenFilterGammaStrs[3][32];
+    char bottomScreenFilterContrastStrs[3][32];
+    for (u32 ch = 0; ch < 3; ch++) {
+        encodedFloatToString(topScreenFilterGammaStrs[ch], cfg->topScreenFilter.gammaEnc[ch]);
+        encodedFloatToString(topScreenFilterContrastStrs[ch], cfg->topScreenFilter.contrastEnc[ch]);
+        encodedFloatToString(bottomScreenFilterGammaStrs[ch], cfg->bottomScreenFilter.gammaEnc[ch]);
+        encodedFloatToString(bottomScreenFilterContrastStrs[ch], cfg->bottomScreenFilter.contrastEnc[ch]);
+    }
 
     int n = sprintf(
         out, (const char *)config_template_ini,
@@ -780,16 +757,12 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)((cfg->extraConfigFlags >> 6) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
-        (int)cfg->topScreenFilter.colorCurveCorrection, (int)cfg->bottomScreenFilter.colorCurveCorrection,
-        topScreenFilterGammaStr, bottomScreenFilterGammaStr,
-        topScreenFilterContrastStr, bottomScreenFilterContrastStr,
-        topScreenFilterBrightnessStr, bottomScreenFilterBrightnessStr,
+        topScreenFilterGammaStrs[0], topScreenFilterGammaStrs[1], topScreenFilterGammaStrs[2],
+        bottomScreenFilterGammaStrs[0], bottomScreenFilterGammaStrs[1], bottomScreenFilterGammaStrs[2],
+        topScreenFilterContrastStrs[0], topScreenFilterContrastStrs[1], topScreenFilterContrastStrs[2],
+        bottomScreenFilterContrastStrs[0], bottomScreenFilterContrastStrs[1], bottomScreenFilterContrastStrs[2],
         (int)cfg->topScreenFilter.invert, (int)cfg->bottomScreenFilter.invert,
-
-        cfg->autobootTwlTitleId, (int)cfg->autobootCtrAppmemtype,
-
-        forceAudioOutputStr,
-        cfg->volumeSliderOverride,
+        cfg->autobootTwlTitleId, (int)cfg->autobootCtrAppmemtype, (int)cfg->autobootCtrUseNs,
         (int)((cfg->homeButtonSimFlags >> 0) & 1),
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
         homeButtonComboStr,
@@ -800,7 +773,7 @@ static size_t saveLumaIniConfigToStr(char *out)
     return n < 0 ? 0 : (size_t)n;
 }
 
-static char tmpIniBuffer[0x2500];
+static char tmpIniBuffer[0x2000 + 0x400]; // eyeballed. TODO use #embed
 
 static bool readLumaIniConfig(void)
 {
@@ -815,10 +788,33 @@ static bool readLumaIniConfig(void)
 static bool writeLumaIniConfig(void)
 {
     size_t n = saveLumaIniConfigToStr(tmpIniBuffer);
+
+    // FIXME: this is UB we should port snprintf sometime (as well as fix other tech debt)
+    if (n + 1 >= sizeof(tmpIniBuffer)) {
+        error("Configuration data buffer overflow, please report this issue");
+        __builtin_unreachable();
+    }
+
     return n != 0 && fileWrite(tmpIniBuffer, "nexusconfig.ini", n);
 }
 
 // ===========================================================
+
+static u8 computeConfigMcuChecksum(const u8 *data)
+{
+    // Only the fields from lumaVersion onwards are checksummed
+    u8 checksum = 0;
+    for (u32 i = offsetof(CfgDataMcu, lumaVersion); i < sizeof(CfgDataMcu) - 1; i++)
+        checksum += data[i];
+    return ~checksum;
+}
+
+static void resetConfigMcu(void)
+{
+    memset(&configDataMcu, 0, sizeof(CfgDataMcu));
+    configDataMcu.volumeSliderOverride = MCUCFG_UNSET_PERCENTAGE_OVERRIDE;
+    configDataMcu.ledMasterBrightnessOverride = MCUCFG_UNSET_PERCENTAGE_OVERRIDE;
+}
 
 static void writeConfigMcu(void)
 {
@@ -833,10 +829,7 @@ static void writeConfigMcu(void)
     memcpy(data, &configDataMcu, sizeof(CfgDataMcu));
 
     // Fix checksum
-    u8 checksum = 0;
-    for (u32 i = 0; i < sizeof(CfgDataMcu) - 1; i++)
-        checksum += data[i];
-    checksum = ~checksum;
+    u8 checksum = computeConfigMcuChecksum(data);
     data[sizeof(CfgDataMcu) - 1] = checksum;
     configDataMcu.checksum = checksum;
 
@@ -854,15 +847,15 @@ static bool readConfigMcu(void)
     I2C_readRegBuf(I2C_DEV_MCU, 0x61, data, sizeof(CfgDataMcu));
     memcpy(&configDataMcu, data, sizeof(CfgDataMcu));
 
-    u8 checksum = 0;
-    for (u32 i = 0; i < sizeof(CfgDataMcu) - 1; i++)
-        checksum += data[i];
-    checksum = ~checksum;
+    u8 checksum = computeConfigMcuChecksum(data);
 
+    // Note: data written with the previous 6-byte layout (lumaVersion, bootCfg, reserved[2], checksum)
+    // is always rejected here, as lumaVersion now overlaps with the old bootCfg and reserved[0] fields
+    // (thus is < 0x100)
     if (checksum != configDataMcu.checksum || configDataMcu.lumaVersion < MAKE_LUMA_VERSION_MCU(10, 3, 0))
     {
         // Invalid data stored in MCU...
-        memset(&configDataMcu, 0, sizeof(CfgDataMcu));
+        resetConfigMcu();
         configData.bootConfig = 0;
         // Perform upgrade process (ignoring failures)
         askForUpgradeProcess();
@@ -870,6 +863,12 @@ static bool readConfigMcu(void)
 
         return false;
     }
+
+    // Sanitize non-checksummed fields
+    if ((configDataMcu.flags & MCUCFG_FLAGS_AUDIO_ROUTING_MASK) == MCUCFG_FLAGS_AUDIO_ROUTING_MASK)
+        configDataMcu.flags &= ~MCUCFG_FLAGS_AUDIO_ROUTING_MASK;
+    if (configDataMcu.volumeSliderOverrideStereoBalance < -100 || configDataMcu.volumeSliderOverrideStereoBalance > 100)
+        configDataMcu.volumeSliderOverrideStereoBalance = 0;
 
     if (configDataMcu.lumaVersion < curVer)
     {
@@ -881,11 +880,28 @@ static bool readConfigMcu(void)
     return true;
 }
 
+static void applyLedMasterBrightnessOverride(void)
+{
+    // We deliberately leave the POWER LED setting as "auto" instead of "off" so that the red POWER LED appears
+    // regardless of setting. Note that the red POWER LED is not dimmable.
+
+    u8 override = configDataMcu.ledMasterBrightnessOverride;
+    u8 pct = override & 0x7F;
+
+    // Only touch the MCU if the override is enabled, set, and not the default (100%)
+    if ((override & 0x80) != 0 || pct >= 100)
+        return;
+
+    // Round to nearest integer, same as Rosalina
+    I2C_writeReg(I2C_DEV_MCU, 0x28, (255 * pct + 50) / 100);
+}
+
 bool readConfig(void)
 {
     bool retMcu, ret;
 
     retMcu = readConfigMcu();
+    applyLedMasterBrightnessOverride();
     ret = readLumaIniConfig();
     if(!retMcu || !ret ||
        configData.formatVersionMajor != CONFIG_VERSIONMAJOR ||
@@ -898,12 +914,13 @@ bool readConfig(void)
         configData.multiConfig |= 1 << (2 * (u32)NEWCPU); // Default NEWCPU to Clock
         configData.multiConfig |= 1 << (2 * (u32)SPLASHDURATION); // Default splash duration to 3s
         configData.splashDurationMsec = 3000;
-        configData.volumeSliderOverride = -1;
         configData.hbldr3dsxTitleId = HBLDR_DEFAULT_3DSX_TID;
         configData.rosalinaMenuCombo = 1u << 9 | 1u << 7 | 1u << 2; // L+Down+Select
         configData.topScreenFilter.cct = 6500; // default temp, no-op
-        configData.topScreenFilter.gammaEnc = 1 * FLOAT_CONV_MULT; // 1.0f
-        configData.topScreenFilter.contrastEnc = 1 * FLOAT_CONV_MULT; // 1.0f
+        for (u32 ch = 0; ch < 3; ch++) {
+            configData.topScreenFilter.gammaEnc[ch] = 1 * FLOAT_CONV_MULT; // 1.0f
+            configData.topScreenFilter.contrastEnc[ch] = 1 * FLOAT_CONV_MULT; // 1.0f
+        }
         configData.bottomScreenFilter = configData.topScreenFilter;
         configData.autobootTwlTitleId = AUTOBOOT_DEFAULT_TWL_TID;
 
@@ -919,6 +936,10 @@ bool readConfig(void)
         ret = true;
 
     configData.bootConfig = configDataMcu.bootCfg;
+    configData.mcuConfigFlags = configDataMcu.flags;
+    configData.volumeSliderOverride = configDataMcu.volumeSliderOverride;
+    configData.volumeSliderOverrideStereoBalance = configDataMcu.volumeSliderOverrideStereoBalance;
+    configData.ledMasterBrightnessOverride = configDataMcu.ledMasterBrightnessOverride;
     oldConfig = configData;
 
     return ret;
@@ -1222,7 +1243,6 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         { .visible = true, .page = 0 }, // PIN
         { .visible = ISN3DS, .page = 0 }, // n3ds CPU
         { .visible = true, .page = 1 }, // Autoboot
-        // { .visible = true }, audio rerouting, hidden
     };
 
     struct singleOption singleOptions[] = {

@@ -70,18 +70,35 @@ typedef struct DspFirm
 Menu miscellaneousMenu = {
     "Miscellaneous options menu",
     {
-        {"Switch the hb. title to the current app.", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle},
-        {"Change the menu combo", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo},
-        {"HOME button simulation options...", MENU, .menu = &homeButtonSimMenu},
-        {"Start InputRedirection", METHOD, .method = &MiscellaneousMenu_InputRedirection},
-        {"Update time and date via NTP", METHOD, .method = &MiscellaneousMenu_UpdateTimeDateNtp},
-        {"Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset},
-        {"Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm},
-        {"Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins},
+        { "Switch the hb. title to the current app.", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
+        { "Change the menu combo", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo },
+        { "HOME button simulation options...", MENU, .menu = &homeButtonSimMenu },
+        { "Start InputRedirection", METHOD, .method = &MiscellaneousMenu_InputRedirection },
+        { "Update time and date via NTP", METHOD, .method = &MiscellaneousMenu_UpdateTimeDateNtp },
+        { "Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
+        { "Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
+        { "Show temperature in Fahrenheit", METHOD, .method = &MiscellaneousMenu_ToggleTemperatureUnit },
+        { "Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins },
         {},
-    }};
+    }
+};
 
 int lastNtpTzOffset = 0;
+
+void MiscellaneousMenu_UpdateTemperatureUnitEntry(void)
+{
+    if (lumaMcuConfig.flags & MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT)
+        miscellaneousMenu.items[6].title = "Show temperature in Celsius   ";
+    else
+        miscellaneousMenu.items[6].title = "Show temperature in Fahrenheit";
+}
+
+void MiscellaneousMenu_ToggleTemperatureUnit(void)
+{
+    // Stored in MCU, saved immediately
+    LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT, lumaMcuConfig.flags ^ MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT);
+    MiscellaneousMenu_UpdateTemperatureUnitEntry();
+}
 
 static inline bool compareTids(u64 tidA, u64 tidB)
 {
@@ -255,19 +272,30 @@ void MiscellaneousMenu_InputRedirection(void)
             if (res == 0)
                 posY = Draw_DrawString(20, posY + SPACING_Y, COLOR_GREEN, "Starting InputRedirection... OK.");
             else
-                posY = Draw_DrawString(20, posY + SPACING_Y, COLOR_RED, buf);
-        } else {
-            if (res == 0) {
-                posY = Draw_DrawString(20, posY, COLOR_GREEN, "InputRedirection stopped successfully.\n\n");
-                if (isN3DS) {
-                    posY = Draw_DrawString(20, posY, COLOR_WHITE,
-                        "This might cause a key press to be repeated\nin Home Menu for no reason.\n\nJust pressing ZL/ZR on the console is\nenough to fix this.\n");
-                }
-            } else {
-                posY = Draw_DrawString(20, posY, COLOR_RED, buf);
-            }
+                Draw_DrawString(10, 30, COLOR_WHITE, buf);
         }
-        Draw_DrawString(20, posY + SPACING_Y * 2, COLOR_GRAY, "Press B to go back.");
+        else
+        {
+            if(res == 0)
+            {
+                u32 posY = 30;
+                posY = Draw_DrawString(10, posY, COLOR_WHITE, "InputRedirection stopped successfully.\n\n");
+                if (isN3DS)
+                {
+                    posY = Draw_DrawString(
+                        10,
+                        posY,
+                        COLOR_WHITE,
+                        "This might cause a key press to be repeated in\n"
+                        "HOME Menu for no reason.\n\n"
+                        "Just pressing ZL/ZR on the console is enough to fix\nthis.\n"
+                    );
+                }
+            }
+            else
+                Draw_DrawString(10, 30, COLOR_WHITE, buf);
+        }
+
         Draw_FlushFramebuffer();
         Draw_Unlock();
     } while (!(waitInput() & KEY_B) && !menuShouldExit);

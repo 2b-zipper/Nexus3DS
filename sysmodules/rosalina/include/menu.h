@@ -98,6 +98,7 @@ u32 Get_TitleID(u64* titleId);
 MyThread *menuCreateThread(void);
 void    menuEnter(void);
 void    menuLeave(void);
+void    menuRequestClose(void);
 void    menuThreadMain(void);
 void    menuShow(Menu *root);
 void    DispMessage(const char *title, const char *message);
