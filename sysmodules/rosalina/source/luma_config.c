@@ -33,7 +33,6 @@
 #include "ifile.h"
 #include "menus/miscellaneous.h"
 #include "menus/sysconfig.h"
-#include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "plugin/plgloader.h"
@@ -41,7 +40,6 @@
 extern bool PluginWatcher_isEnabled;
 extern bool PluginConverter_UseCache;
 extern u32  PluginWatcher_WatchLevel;
-extern config_extra configExtra;
 
 typedef struct CfgData {
     u16 formatVersionMajor, formatVersionMinor;
@@ -62,7 +60,6 @@ typedef struct CfgData {
     u8 autobootCtrAppmemtype;
     bool autobootCtrUseNs;
 
-    u32 extraConfigFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;
     u8 screenToggleTarget;
@@ -239,9 +236,9 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         (int)CONFIG(AUTOBOOTEMU), (int)CONFIG(LOADEXTFIRMSANDMODULES),
         (int)CONFIG(PATCHGAMES), (int)CONFIG(REDIRECTAPPTHREADS),
         (int)CONFIG(PATCHVERSTRING), (int)CONFIG(SHOWGBABOOT),
-        (int)CONFIG(PATCHUNITINFO), (int)CONFIG(DISABLEARM11EXCHANDLERS),
-        (int)CONFIG(ENABLESAFEFIRMROSALINA), (int)CONFIG(INSTANTREBOOTNOERRDISP),
-        (int)CONFIG(ENABLESDBOOTTIMEPATCH),
+        (int)CONFIG(SLEEPCUTWIFI), (int)CONFIG(PATCHUNITINFO),
+        (int)CONFIG(DISABLEARM11EXCHANDLERS), (int)CONFIG(ENABLESAFEFIRMROSALINA),
+        (int)CONFIG(INSTANTREBOOTNOERRDISP), (int)CONFIG(ENABLESDBOOTTIMEPATCH),
 
         1 + (int)MULTICONFIG(DEFAULTEMU), 4 - (int)MULTICONFIG(BRIGHTNESS),
         splashPosStr, splashDurationPresetStr, (unsigned int)cfg->splashDurationMsec,
@@ -252,11 +249,6 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         (int)((cfg->pluginLoaderFlags & (1 << 1)) >> 1), (int)cfg->pluginWatcherLevel,
         (int)((cfg->pluginLoaderFlags & (1 << 2)) >> 2),
         (int)cfg->ntpTzOffetMinutes,
-
-        (int)((cfg->extraConfigFlags >> 0) & 1),
-        (int)((cfg->extraConfigFlags >> 1) & 1),
-        (int)((cfg->extraConfigFlags >> 2) & 1),
-        (int)((cfg->extraConfigFlags >> 3) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         topScreenFilterGammaStrs[0], topScreenFilterGammaStrs[1], topScreenFilterGammaStrs[2],
@@ -345,12 +337,6 @@ Result LumaConfig_SaveSettings(void)
     configData.homeButtonCombo = homeButtonCombo;
     configData.screenToggleTarget = screenToggleTarget;
     configData.screenToggleCombo = screenToggleCombo;
-
-    configData.extraConfigFlags = 0;
-    if (configExtra.cutSlotPower) configData.extraConfigFlags |= 1 << 0;
-    if (configExtra.cutSleepWifi) configData.extraConfigFlags |= 1 << 1;
-    if (configExtra.screenshotDateFolders) configData.extraConfigFlags |= 1 << 2;
-    if (configExtra.screenshotCombined) configData.extraConfigFlags |= 1 << 3;
 
     size_t n = LumaConfig_SaveLumaIniConfigToStr(inibuf, &configData);
 

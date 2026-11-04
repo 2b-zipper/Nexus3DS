@@ -36,7 +36,6 @@
 #include "luma_config.h"
 #include "menus/n3ds.h"
 #include "menus/cheats.h"
-#include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "redshift/redshift.h"

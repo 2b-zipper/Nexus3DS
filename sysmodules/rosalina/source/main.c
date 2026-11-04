@@ -33,11 +33,11 @@
 #include "sleep.h"
 #include "MyThread.h"
 #include "menus/miscellaneous.h"
+#include "menus/nexus_config.h"
 #include "menus/debugger.h"
 #include "menus/screen_filters.h"
 #include "menus/cheats.h"
 #include "menus/sysconfig.h"
-#include "menus/config_extra.h"
 #include "menus/home_button_sim.h"
 #include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
@@ -55,8 +55,7 @@
 
 bool isN3DS;
 bool wifiOnBeforeSleep;
-
-extern config_extra configExtra;
+bool sleepCutWifi;
 
 Result __sync_init(void);
 Result __sync_fini(void);
@@ -145,6 +144,7 @@ void initSystem(void)
 
     svcGetSystemInfo(&out, 0x10000, 3);
     instantReboot = (((u32)out >> (u32)INSTANTREBOOTNOERRDISP) & 1) != 0;
+    sleepCutWifi = (((u32)out >> (u32)SLEEPCUTWIFI) & 1) != 0;
 
     for(res = 0xD88007FA; res == (Result)0xD88007FA; svcSleepThread(500 * 1000LL))
     {
@@ -253,7 +253,7 @@ static void handleShellNotification(u32 notificationId)
             Redshift_ApplyNightLightSettings();
         }
 
-        if(wifiOnBeforeSleep && configExtra.cutSleepWifi && isServiceUsable("nwm::EXT")){
+        if(wifiOnBeforeSleep && sleepCutWifi && isServiceUsable("nwm::EXT")){
             nwmExtInit();
             NWMEXT_ControlWirelessEnabled(true);
             nwmExtExit();
@@ -263,7 +263,7 @@ static void handleShellNotification(u32 notificationId)
         // Shell closed
         menuShouldExit = true;
 
-        if(configExtra.cutSleepWifi)
+        if(sleepCutWifi)
         {      
             u8 wireless = (*(vu8 *)((0x10140000 | (1u << 31)) + 0x180));
 
@@ -368,11 +368,6 @@ int main(void)
 {
     Sleep__Init();
     PluginLoader__Init();
-    ConfigExtra_ReadConfigExtra();
-    if (configExtra.cutSlotPower)
-    {
-        cutPowerToCardSlotWhenTWLCard();
-    }
 
     nightLightSettingsRead = Redshift_ReadNightLightSettings();
 
@@ -383,11 +378,15 @@ int main(void)
     Cheat_SeedRng(svcGetSystemTick());
     LumaConfig_LoadMcuConfig();
     ScreenFiltersMenu_LoadConfig();
-    MiscellaneousMenu_UpdateTemperatureUnitEntry();
-    MiscellaneousMenu_UpdateClockFormatEntry();
-    ConfigExtra_ReadConfigExtra();
+    NexusConfigMenu_UpdateTemperatureUnitEntry();
+    NexusConfigMenu_UpdateClockFormatEntry();
     HomeButtonSimMenu_LoadConfig();
     ScreenToggleMenu_LoadConfig();
+
+    if ((lumaMcuConfig.flags & MCUCFG_FLAG_CUT_TWL_FLASHCARDS_POWER) != 0)
+    {
+        cutPowerToCardSlotWhenTWLCard();
+    }
 
     MyThread *menuThread = menuCreateThread();
     MyThread *taskRunnerThread = taskRunnerCreateThread();

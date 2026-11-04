@@ -27,7 +27,6 @@
 #include <3ds.h>
 #include "luma_config.h"
 #include "menus/sysconfig.h"
-#include "menus/config_extra.h"
 #include "menus/screen_toggle.h"
 #include "memory.h"
 #include "draw.h"
@@ -58,7 +57,6 @@ Menu sysconfigMenu = {
         { "Toggle Power Button", METHOD, .method=&SysConfigMenu_TogglePowerButton },
         { "Toggle power to card slot", METHOD, .method=&SysConfigMenu_ToggleCardIfPower},
         { "Toggle Screen options...", MENU, .menu=&screenToggleMenu, .visibility=&menuCheckNoO2ds},
-        { "Extra Config...", METHOD, .method = &ConfigExtra_DrawDetailedMenu },
         {},
     }
 };
@@ -540,6 +538,7 @@ void SysConfigMenu_ToggleCardIfPower(void)
 
     bool cardIfStatus = false;
     bool updatedCardIfStatus = false;
+    bool cutTwlFlashcards = (lumaMcuConfig.flags & MCUCFG_FLAG_CUT_TWL_FLASHCARDS_POWER) != 0;
 
     do
     {
@@ -552,6 +551,8 @@ void SysConfigMenu_ToggleCardIfPower(void)
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Inserting or removing a card will reset the status,\nand you'll need to reinsert the cart if you want to\nplay it.\n\n");
         Draw_DrawString(10, posY, COLOR_WHITE, "Current status:");
         Draw_DrawString(100, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? " DISABLED" : " ENABLED ");
+
+        Draw_DrawString(120, posY, !cutTwlFlashcards ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? " TWLDISABLED" : " TWLENABLED ");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -568,7 +569,10 @@ void SysConfigMenu_ToggleCardIfPower(void)
             if (R_SUCCEEDED(res))
                 cardIfStatus = !updatedCardIfStatus;
         }
-        else if(pressed & KEY_B)
+        else if(pressed & KEY_X) {
+            LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_CUT_TWL_FLASHCARDS_POWER, lumaMcuConfig.flags ^ MCUCFG_FLAG_CUT_TWL_FLASHCARDS_POWER);
+            cutTwlFlashcards = !cutTwlFlashcards;
+        } else if(pressed & KEY_B)
             return;
     }
     while(!menuShouldExit);

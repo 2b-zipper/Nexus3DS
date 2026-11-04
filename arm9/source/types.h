@@ -93,7 +93,6 @@ typedef struct CfgData {
     u8 autobootCtrAppmemtype;
     bool autobootCtrUseNs;
 
-    u32 extraConfigFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;
     u8 screenToggleTarget;

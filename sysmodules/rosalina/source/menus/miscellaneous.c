@@ -26,7 +26,6 @@
 
 #include <3ds.h>
 #include "menus/miscellaneous.h"
-#include "menus/home_button_sim.h"
 #include "luma_config.h"
 #include "input_redirection.h"
 #include "ntp.h"
@@ -71,50 +70,16 @@ Menu miscellaneousMenu = {
     "Miscellaneous options menu",
     {
         { "Switch the hb. title to the current app.", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
-        { "Change the menu combo", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo },
-        { "HOME button simulation options...", MENU, .menu = &homeButtonSimMenu },
         { "Start InputRedirection", METHOD, .method = &MiscellaneousMenu_InputRedirection },
         { "Update time and date via NTP", METHOD, .method = &MiscellaneousMenu_UpdateTimeDateNtp },
         { "Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
         { "Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
-        { "Show temperature in Fahrenheit", METHOD, .method = &MiscellaneousMenu_ToggleTemperatureUnit },
-        { "Use 12 hours clock format", METHOD, .method = &MiscellaneousMenu_ToggleClockFormat },
         { "Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins },
         {},
     }
 };
 
 int lastNtpTzOffset = 0;
-
-void MiscellaneousMenu_UpdateTemperatureUnitEntry(void)
-{
-    if (lumaMcuConfig.flags & MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT)
-        miscellaneousMenu.items[7].title = "Show temperature in Celsius   ";
-    else
-        miscellaneousMenu.items[7].title = "Show temperature in Fahrenheit";
-}
-
-void MiscellaneousMenu_ToggleTemperatureUnit(void)
-{
-    // Stored in MCU, saved immediately
-    LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT, lumaMcuConfig.flags ^ MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT);
-    MiscellaneousMenu_UpdateTemperatureUnitEntry();
-}
-
-void MiscellaneousMenu_UpdateClockFormatEntry(void)
-{
-    if (lumaMcuConfig.flags & MCUCFG_FLAG_CLOCK_AM_PM)
-        miscellaneousMenu.items[8].title = "Use 24 hours clock format";
-    else
-        miscellaneousMenu.items[8].title = "Use 12 hours clock format";
-}
-
-void MiscellaneousMenu_ToggleClockFormat(void)
-{
-    // Stored in MCU, saved immediately
-    LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_CLOCK_AM_PM, lumaMcuConfig.flags ^ MCUCFG_FLAG_CLOCK_AM_PM);
-    MiscellaneousMenu_UpdateClockFormatEntry();
-}
 
 static inline bool compareTids(u64 tidA, u64 tidB)
 {
@@ -185,34 +150,6 @@ void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void)
     } while (!(waitInput() & KEY_B) && !menuShouldExit);
 }
 
-void MiscellaneousMenu_ChangeMenuCombo(void)
-{
-    char comboStrOrig[128], comboStr[128];
-    u32 posY;
-
-    Draw_Lock();
-    Draw_ClearFramebuffer();
-    Draw_FlushFramebuffer();
-    Draw_Unlock();
-    LumaConfig_ConvertComboToString(comboStrOrig, menuCombo);
-    Draw_Lock();
-    Draw_DrawMenuFrame("Miscellaneous options menu");
-    posY = Draw_DrawFormattedString(20, 40, COLOR_WHITE, "The current menu combo is:  %s", comboStrOrig);
-    posY = Draw_DrawString(20, posY + SPACING_Y, COLOR_WHITE, "Please enter the new combo:");
-    menuCombo = waitCombo();
-    LumaConfig_ConvertComboToString(comboStr, menuCombo);
-    do {
-        Draw_Lock();
-        Draw_DrawMenuFrame("Miscellaneous options menu");
-        posY = Draw_DrawFormattedString(20, 40, COLOR_WHITE, "The current menu combo is:  %s", comboStrOrig);
-        posY = Draw_DrawFormattedString(20, posY + SPACING_Y, COLOR_WHITE, "Please enter the new combo: %s", comboStr) + SPACING_Y;
-        posY = Draw_DrawString(20, posY + SPACING_Y, COLOR_GREEN, "Successfully changed the menu combo.");
-        Draw_DrawString(20, posY + SPACING_Y * 2, COLOR_GRAY, "Press B to go back.");
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-    } while (!(waitInput() & KEY_B) && !menuShouldExit);
-}
-
 void MiscellaneousMenu_InputRedirection(void)
 {
     bool done = false;
@@ -228,7 +165,7 @@ void MiscellaneousMenu_InputRedirection(void)
         if (res != 0)
             sprintf(buf, "Failed to stop InputRedirection (0x%08lx).", (u32)res);
         else
-            miscellaneousMenu.items[3].title = "Start InputRedirection";
+            miscellaneousMenu.items[1].title = "Start InputRedirection";
     }
     else
     {
@@ -281,7 +218,7 @@ void MiscellaneousMenu_InputRedirection(void)
                 if (res != 0)
                     sprintf(buf, "Starting InputRedirection... failed (0x%08lx).", (u32)res);
                 else
-                    miscellaneousMenu.items[3].title = "Stop InputRedirection";
+                    miscellaneousMenu.items[1].title = "Stop InputRedirection";
                 done = true;
             }
             if (res == 0)

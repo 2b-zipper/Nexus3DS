@@ -33,11 +33,11 @@
 #include "menus/n3ds.h"
 #include "menus/debugger.h"
 #include "menus/miscellaneous.h"
+#include "menus/nexus_config.h"
 #include "menus/home_button_sim.h"
 #include "menus/sysconfig.h"
 #include "menus/screen_filters.h"
 #include "menus/plugin_options.h"
-#include "menus/config_extra.h"
 #include "plugin.h"
 #include "pmdbgext.h"
 #include "ifile.h"
@@ -45,8 +45,6 @@
 #include "fmt.h"
 #include "process_patches.h"
 #include "luma_config.h"
-
-extern config_extra configExtra;
 
 Menu rosalinaMenu = {
     "Rosalina menu",
@@ -60,7 +58,7 @@ Menu rosalinaMenu = {
         { "Debugger options...", MENU, .menu = &debuggerMenu },
         { "System configuration...", MENU, .menu = &sysconfigMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
-        { "Save settings", METHOD, .method = &RosalinaMenu_SaveSettings },
+        { "Nexus config options...", MENU, .menu = &nexusConfigMenu },
         { "Return To HOME Menu", METHOD, .method = &RosalinaMenu_ReturnToHomeMenu , .visibility = &HomeButtonSimMenu_ShouldShowReturnToHomeMenu },
         { "Power off / reboot", METHOD, .method = &RosalinaMenu_PowerOffOrReboot },
         { "System info", METHOD, .method = &RosalinaMenu_ShowSystemInfo },
@@ -148,27 +146,6 @@ bool rosalinaMenuShouldShowDebugInfo(void)
     return out == 0;
 }
 
-void RosalinaMenu_SaveSettings(void)
-{
-    Result res = LumaConfig_SaveSettings();
-    Draw_Lock();
-    Draw_ClearFramebuffer();
-    Draw_FlushFramebuffer();
-    Draw_Unlock();
-
-    do
-    {
-        Draw_Lock();
-        Draw_DrawMenuFrame("Save settings");
-        if (R_SUCCEEDED(res))
-            Draw_DrawString(10, 40, COLOR_WHITE, "Operation succeeded.");
-        else
-            Draw_DrawFormattedString(10, 40, COLOR_WHITE, "Operation failed (0x%08lx).", res);
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-    }
-    while (!(waitInput() & KEY_B) && !menuShouldExit);
-}
 
 void RosalinaMenu_PowerOffOrReboot(void)
 {
@@ -543,26 +520,24 @@ void RosalinaMenu_TakeScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    if (configExtra.screenshotDateFolders) {
-        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-        if (R_SUCCEEDED(res)) {
-            char dateFolderPath[64];
-            char dateOnlyStr[16];
-            
-            strncpy(dateOnlyStr, dateTimeStr, 10);
-            dateOnlyStr[10] = '\0';
-            
-            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-            if ((u32)res == 0xC82044BE) // directory already exists
-                res = 0;
-            FSUSER_CloseArchive(archive);
-        }
-        else
-        {
-            archive = 0;
-            goto end;
-        }
+    res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+    if (R_SUCCEEDED(res)) {
+        char dateFolderPath[64];
+        char dateOnlyStr[16];
+        
+        strncpy(dateOnlyStr, dateTimeStr, 10);
+        dateOnlyStr[10] = '\0';
+        
+        sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
+        res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
+        if ((u32)res == 0xC82044BE) // directory already exists
+            res = 0;
+        FSUSER_CloseArchive(archive);
+    }
+    else
+    {
+        archive = 0;
+        goto end;
     }
 
     char titleIdStr[18] = {0};
@@ -572,16 +547,12 @@ void RosalinaMenu_TakeScreenshot(void)
     }
 
     char folderPath[64];
-    if (configExtra.screenshotDateFolders) {
-        char dateOnlyStr[16];
-        strncpy(dateOnlyStr, dateTimeStr, 10);
-        dateOnlyStr[10] = '\0';
-        sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
-    } else {
-        strcpy(folderPath, "/luma/screenshots");
-    }
+    char dateOnlyStr[16];
+    strncpy(dateOnlyStr, dateTimeStr, 10);
+    dateOnlyStr[10] = '\0';
+    sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
 
-    if (configExtra.screenshotCombined) {
+    if (true) { // [TODO] combined screenshots setting
         sprintf(filename, "%s/%s%s_cmb.bmp", folderPath, dateTimeStr, titleIdStr);
         TRY(IFile_Open(&file, archiveId, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, filename), FS_OPEN_CREATE | FS_OPEN_WRITE));
         TRY(RosalinaMenu_WriteCombinedScreenshot(&file, topWidth, bottomWidth, is3d));
@@ -714,26 +685,24 @@ void menuTakeSelfScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    if (configExtra.screenshotDateFolders) {
-        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-        if (R_SUCCEEDED(res)) {
-            char dateFolderPath[64];
-            char dateOnlyStr[16];
-            
-            strncpy(dateOnlyStr, dateTimeStr, 10);
-            dateOnlyStr[10] = '\0';
-            
-            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-            if ((u32)res == 0xC82044BE) // directory already exists
-                res = 0;
-            FSUSER_CloseArchive(archive);
-        }
-        else
-        {
-            archive = 0;
-            goto end;
-        }
+    res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+    if (R_SUCCEEDED(res)) {
+        char dateFolderPath[64];
+        char dateOnlyStr[16];
+        
+        strncpy(dateOnlyStr, dateTimeStr, 10);
+        dateOnlyStr[10] = '\0';
+        
+        sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
+        res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
+        if ((u32)res == 0xC82044BE) // directory already exists
+            res = 0;
+        FSUSER_CloseArchive(archive);
+    }
+    else
+    {
+        archive = 0;
+        goto end;
     }
 
     char titleIdStr[18] = {0};
@@ -743,14 +712,10 @@ void menuTakeSelfScreenshot(void)
     }
 
     char folderPath[64];
-    if (configExtra.screenshotDateFolders) {
-        char dateOnlyStr[16];
-        strncpy(dateOnlyStr, dateTimeStr, 10);
-        dateOnlyStr[10] = '\0';
-        sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
-    } else {
-        strcpy(folderPath, "/luma/screenshots");
-    }
+    char dateOnlyStr[16];
+    strncpy(dateOnlyStr, dateTimeStr, 10);
+    dateOnlyStr[10] = '\0';
+    sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
 
     sprintf(filename, "%s/rosalina_menu_%s%s.bmp", folderPath, dateTimeStr, titleIdStr);
 

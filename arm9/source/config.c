@@ -67,6 +67,7 @@ static const char *singleOptionIniNamesBoot[] = {
     "app_syscore_threads_on_core_2",
     "show_system_settings_string",
     "show_gba_boot_screen",
+    "sleep_cut_wifi",
     "use_dev_unitinfo",
     "disable_arm11_exception_handlers",
     "enable_safe_firm_rosalina",
@@ -518,26 +519,6 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, -779, 899));
             cfg->ntpTzOffetMinutes = (s16)opt;
             return 1;
-        } else if (strcmp(name, "cut_slot_power") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 0) : cfg->extraConfigFlags & ~(1 << 0);
-            return 1;
-        } else if (strcmp(name, "cut_sleep_wifi") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 1) : cfg->extraConfigFlags & ~(1 << 1);
-            return 1;
-        } else if (strcmp(name, "screenshot_date_folders") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 2) : cfg->extraConfigFlags & ~(1 << 2);
-            return 1;
-        } else if (strcmp(name, "screenshot_combined") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->extraConfigFlags = opt ? cfg->extraConfigFlags | (1 << 3) : cfg->extraConfigFlags & ~(1 << 3);
-            return 1;
         } else {
             CHECK_PARSE_OPTION(-1);
         }
@@ -606,7 +587,6 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(-1);
         }
     } else if (strcmp(section, "misc") == 0) {
-        // TODO: move these to mcu
         if (strcmp(name, "hide_return_to_home_menu") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
@@ -719,9 +699,9 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)CONFIG(AUTOBOOTEMU), (int)CONFIG(LOADEXTFIRMSANDMODULES),
         (int)CONFIG(PATCHGAMES), (int)CONFIG(REDIRECTAPPTHREADS),
         (int)CONFIG(PATCHVERSTRING), (int)CONFIG(SHOWGBABOOT),
-        (int)CONFIG(PATCHUNITINFO), (int)CONFIG(DISABLEARM11EXCHANDLERS),
-        (int)CONFIG(ENABLESAFEFIRMROSALINA), (int)CONFIG(INSTANTREBOOTNOERRDISP),
-        (int)CONFIG(ENABLESDBOOTTIMEPATCH),
+        (int)CONFIG(SLEEPCUTWIFI), (int)CONFIG(PATCHUNITINFO),
+        (int)CONFIG(DISABLEARM11EXCHANDLERS), (int)CONFIG(ENABLESAFEFIRMROSALINA),
+        (int)CONFIG(INSTANTREBOOTNOERRDISP), (int)CONFIG(ENABLESDBOOTTIMEPATCH),
 
         1 + (int)MULTICONFIG(DEFAULTEMU), 4 - (int)MULTICONFIG(BRIGHTNESS),
         splashPosStr, splashDurationPresetStr, (unsigned int)cfg->splashDurationMsec,
@@ -732,11 +712,6 @@ static size_t saveLumaIniConfigToStr(char *out)
         (int)((cfg->pluginLoaderFlags & (1 << 1)) >> 1), (int)cfg->pluginWatcherLevel,
         (int)((cfg->pluginLoaderFlags & (1 << 2)) >> 2),
         (int)cfg->ntpTzOffetMinutes,
-
-        (int)((cfg->extraConfigFlags >> 0) & 1),
-        (int)((cfg->extraConfigFlags >> 1) & 1),
-        (int)((cfg->extraConfigFlags >> 2) & 1),
-        (int)((cfg->extraConfigFlags >> 3) & 1),
 
         (int)cfg->topScreenFilter.cct, (int)cfg->bottomScreenFilter.cct,
         topScreenFilterGammaStrs[0], topScreenFilterGammaStrs[1], topScreenFilterGammaStrs[2],
@@ -906,9 +881,6 @@ bool readConfig(void)
         configData.bottomScreenFilter = configData.topScreenFilter;
         configData.autobootTwlTitleId = AUTOBOOT_DEFAULT_TWL_TID;
 
-        configData.extraConfigFlags = 0;
-        configData.extraConfigFlags |= 1 << 2; // screenshot_date_folders  
-        configData.extraConfigFlags |= 1 << 3; // screenshot_combined
         configData.homeButtonCombo = 1u << 2 | 1u << 8; // Select+R
         configData.screenToggleTarget = 0; // None - disabled
         configData.screenToggleCombo = 1u << 3 | 1u << 2; // Start+Select
@@ -1050,6 +1022,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                "( ) Redirect app. syscore threads to core2",
                                                "( ) Show NAND or user string in System Settings",
                                                "( ) Show GBA boot screen in patched AGB_FIRM",
+                                               "( ) Cut 3DS Wifi in sleep mode",
                                                "( ) Enable development UNITINFO",
                                                "( ) Disable arm11 exception handlers",
                                                "( ) Enable Rosalina on SAFE_FIRM",
@@ -1154,6 +1127,13 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "Enable showing the GBA boot screen\n"
                                                  "when booting GBA games.",
 
+                                                 "Cut the 3DS wifi in sleep mode.\n\n"
+                                                 "This saves battery but prevent some\n"
+                                                 "features like streetpass or spotpass\n"
+                                                 "to work in sleep mode.\n\n"
+                                                 "Use this if you don't use them or\n"
+                                                 "want to save battery in sleep mode.",
+
                                                  "Make the console be always detected\n"
                                                  "as a development unit, and conversely.\n"
                                                  "This is meant to install and boot\n"
@@ -1233,9 +1213,10 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         { .visible = true, .page = 0 }, // Enable game patching
         { .visible = ISN3DS, .page = 1 }, // Redirect app thrreads to core2
         { .visible = true, .page = 0 }, // Show nand or user string in system settings
-        { .visible = true, .page = 0 }, // show GBA boot screen
+        { .visible = true, .page = 0 }, // Show GBA boot screen
+        { .visible = true, .page = 0 }, // Cut wifi in sleep mode
         { .visible = true, .page = 1 }, // Enable dev UNITINFO
-        { .visible = true, .page = 1 }, // disable arm11 exception handlers
+        { .visible = true, .page = 1 }, // Disable arm11 exception handlers
         { .visible = true, .page = 1 }, // Enable Rosalina on SAFE_FIRM
         { .visible = true, .page = 1 }, // Enable instant reboot + disable Errdisp
         { .visible = true, .page = 1 }, // Enable SD card boot time patch 
