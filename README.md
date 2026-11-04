@@ -83,7 +83,7 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 * Experimental faster boot time for big sd cards (Expert option, may corrupt your sd card if full)
 
 **Extra Configuration Menu Options:**
-* Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
+* Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)* (now implemented to luma)
 * Cut power to TWL Flashcards - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * Save screenshots in date folders

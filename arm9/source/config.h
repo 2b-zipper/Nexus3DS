@@ -49,6 +49,7 @@
 #define MCUCFG_FLAGS_AUDIO_ROUTING_SHIFT            2 // 2 bits: 0 = auto, 1 = speakers, 2 = headphones
 #define MCUCFG_FLAGS_AUDIO_ROUTING_MASK             (3u << MCUCFG_FLAGS_AUDIO_ROUTING_SHIFT)
 #define MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT       (1u << 4)
+#define MCUCFG_FLAG_CLOCK_AM_PM                     (1u << 5)
 
 #define MCUCFG_UNSET_PERCENTAGE_OVERRIDE            0xFF // disabled and not set
 

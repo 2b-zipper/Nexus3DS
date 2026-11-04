@@ -248,13 +248,6 @@ static void handleShellNotification(u32 notificationId)
         // and shell close, then NS demuxes it and fires 0x213 and 0x214.
         handleShellOpened();
 
-        if(configExtra.suppressLeds){
-            mcuHwcInit();
-            u8 off = 0;
-            MCUHWC_WriteRegister(0x28, &off, 1);
-            mcuHwcExit();
-        }
-
         if(nightLightSettingsRead && nightLightEnabled)
         {
             Redshift_ApplyNightLightSettings();
@@ -391,6 +384,7 @@ int main(void)
     LumaConfig_LoadMcuConfig();
     ScreenFiltersMenu_LoadConfig();
     MiscellaneousMenu_UpdateTemperatureUnitEntry();
+    MiscellaneousMenu_UpdateClockFormatEntry();
     ConfigExtra_ReadConfigExtra();
     HomeButtonSimMenu_LoadConfig();
     ScreenToggleMenu_LoadConfig();

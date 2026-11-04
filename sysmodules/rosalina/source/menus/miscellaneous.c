@@ -78,6 +78,7 @@ Menu miscellaneousMenu = {
         { "Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
         { "Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
         { "Show temperature in Fahrenheit", METHOD, .method = &MiscellaneousMenu_ToggleTemperatureUnit },
+        { "Use 12 hours clock format", METHOD, .method = &MiscellaneousMenu_ToggleClockFormat },
         { "Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins },
         {},
     }
@@ -98,6 +99,21 @@ void MiscellaneousMenu_ToggleTemperatureUnit(void)
     // Stored in MCU, saved immediately
     LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT, lumaMcuConfig.flags ^ MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT);
     MiscellaneousMenu_UpdateTemperatureUnitEntry();
+}
+
+void MiscellaneousMenu_UpdateClockFormatEntry(void)
+{
+    if (lumaMcuConfig.flags & MCUCFG_FLAG_CLOCK_AM_PM)
+        miscellaneousMenu.items[8].title = "Use 24 hours clock format";
+    else
+        miscellaneousMenu.items[8].title = "Use 12 hours clock format";
+}
+
+void MiscellaneousMenu_ToggleClockFormat(void)
+{
+    // Stored in MCU, saved immediately
+    LumaConfig_SetMcuConfigFlags(MCUCFG_FLAG_CLOCK_AM_PM, lumaMcuConfig.flags ^ MCUCFG_FLAG_CLOCK_AM_PM);
+    MiscellaneousMenu_UpdateClockFormatEntry();
 }
 
 static inline bool compareTids(u64 tidA, u64 tidB)

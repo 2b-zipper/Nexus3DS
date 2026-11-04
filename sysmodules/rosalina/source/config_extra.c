@@ -23,12 +23,10 @@ static inline const char* ConfigExtra_GetCheckboxDisplay(bool value)
 void ConfigExtra_DrawDetailedMenu(void)
 {
     static const ConfigMenuEntry configMenuEntries[] = {
-        {"Automatically suppress LEDs", &configExtra.suppressLeds, NULL},
         {"Cut power to TWL Flashcards", &configExtra.cutSlotPower, NULL},
         {"Cut 3DS Wifi in sleep mode", &configExtra.cutSleepWifi, NULL},
         {"Save screenshots in date folders", &configExtra.screenshotDateFolders, NULL},
-        {"Combine top/bottom screenshots", &configExtra.screenshotCombined, NULL},
-        {"Use 12-hour clock format in Rosalina menu", &configExtra.use12HourClock, NULL}
+        {"Combine top/bottom screenshots", &configExtra.screenshotCombined, NULL}
     };
 
     s32 selected = 0;
@@ -99,18 +97,14 @@ void ConfigExtra_ReadConfigExtra(void)
     Result res = svcGetSystemInfo(&extraConfigFlags, 0x10000, 0x183);
     
     if (R_SUCCEEDED(res)) {
-        configExtra.suppressLeds = (extraConfigFlags >> 0) & 1;
-        configExtra.cutSlotPower = (extraConfigFlags >> 1) & 1;
-        configExtra.cutSleepWifi = (extraConfigFlags >> 2) & 1;
-        configExtra.screenshotDateFolders = (extraConfigFlags >> 3) & 1;
-        configExtra.screenshotCombined = (extraConfigFlags >> 4) & 1;
-        configExtra.use12HourClock = (extraConfigFlags >> 5) & 1;
+        configExtra.cutSlotPower = (extraConfigFlags >> 0) & 1;
+        configExtra.cutSleepWifi = (extraConfigFlags >> 1) & 1;
+        configExtra.screenshotDateFolders = (extraConfigFlags >> 2) & 1;
+        configExtra.screenshotCombined = (extraConfigFlags >> 3) & 1;
     } else {
-        configExtra.suppressLeds = false;
         configExtra.cutSlotPower = false;
         configExtra.cutSleepWifi = false;
         configExtra.screenshotDateFolders = true;
         configExtra.screenshotCombined = true;
-        configExtra.use12HourClock = false;
     }
 }

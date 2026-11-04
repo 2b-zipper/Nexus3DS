@@ -62,6 +62,7 @@ enum multiOptions
 #define MCUCFG_FLAGS_AUDIO_ROUTING_SHIFT            2
 #define MCUCFG_FLAGS_AUDIO_ROUTING_MASK             (3u << MCUCFG_FLAGS_AUDIO_ROUTING_SHIFT)
 #define MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT       BIT(4)
+#define MCUCFG_FLAG_CLOCK_AM_PM                     BIT(5)
 
 typedef enum AudioRouting
 {

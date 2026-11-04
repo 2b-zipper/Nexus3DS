@@ -674,7 +674,7 @@ static void menuDraw(Menu *menu, u32 selected)
         Draw_DrawFormattedString(10, SCREEN_BOT_HEIGHT - 20, COLOR_ORANGE, "Based on Luma3DS %s-%08lx", versionString, commitHash);
     }
 
-    if (configExtra.use12HourClock) {
+    if ((lumaMcuConfig.flags & MCUCFG_FLAG_CLOCK_AM_PM) != 0) {
         const char *ampm = (hours >= 12) ? "PM" : "AM";
         u32 displayHours = (hours % 12 == 0) ? 12 : (hours % 12);
         Draw_DrawFormattedString(SCREEN_BOT_WIDTH - 30 - SPACING_X * 18.6, SCREEN_BOT_HEIGHT - 20, COLOR_CYAN, "%04lu-%02lu-%02lu", year, month, days);

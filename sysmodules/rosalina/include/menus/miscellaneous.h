@@ -40,4 +40,6 @@ void MiscellaneousMenu_NullifyUserTimeOffset(void);
 void MiscellaneousMenu_DumpDspFirm(void);
 void MiscellaneousMenu_UpdateTemperatureUnitEntry(void);
 void MiscellaneousMenu_ToggleTemperatureUnit(void);
+void MiscellaneousMenu_UpdateClockFormatEntry(void);
+void MiscellaneousMenu_ToggleClockFormat(void);
 void MiscellaneousMenu_EditPlayCoins(void);

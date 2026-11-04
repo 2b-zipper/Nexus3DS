@@ -1,10 +1,8 @@
 typedef struct {
-	bool suppressLeds;
 	bool cutSlotPower;
 	bool cutSleepWifi;
 	bool screenshotDateFolders;
 	bool screenshotCombined;
-	bool use12HourClock;
 } config_extra;
 
 extern config_extra configExtra;
