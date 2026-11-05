@@ -24,10 +24,6 @@
 
 <div align="center">
 
-## TODO
-We're currently reworking some parts, here's what's currently missing:
-- Cut power to TWL flashcards (the previous implementation was bad though)
-
 ## Screenshots
 
 | Configuration Menu | Rosalina Menu |

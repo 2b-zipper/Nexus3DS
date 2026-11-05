@@ -134,6 +134,9 @@ void SysConfigMenu_SetLedMasterBrightnessOverride(void)
             "Press X to clear or refresh the override.\n"
             "Press B to go back.\n"
         );
+        Draw_DrawString(SYSCONFIG_COL(0), SYSCONFIG_ROW(11), COLOR_TITLE, "TIP:");
+        Draw_DrawString(SYSCONFIG_COL(1), SYSCONFIG_ROW(12), COLOR_WHITE, "* Press SELECT anywhere in the Rosalina menu\n");
+        Draw_DrawString(SYSCONFIG_COL(3), SYSCONFIG_ROW(13), COLOR_WHITE,"to toggle leds! (This won't be saved though)");
         Draw_FlushFramebuffer();
         Draw_Unlock();
 
@@ -547,12 +550,16 @@ void SysConfigMenu_ToggleCardIfPower(void)
 
         Draw_Lock();
         Draw_DrawMenuFrame("System configuration menu");
-        u32 posY = Draw_DrawString(10, 40, COLOR_WHITE, "Press A to toggle, press B to go back.\n\n");
-        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Inserting or removing a card will reset the status,\nand you'll need to reinsert the cart if you want to\nplay it.\n\n");
-        Draw_DrawString(10, posY, COLOR_WHITE, "Current status:");
-        Draw_DrawString(100, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? " DISABLED" : " ENABLED ");
+        u32 posY = Draw_DrawString(10, 40, COLOR_WHITE, "Inserting or removing a card will reset the status,\nand you'll need to reinsert the cart if you want to\nplay it. This is temporary.\n\n");
+        
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "You can also toggle power to TWL flashcards at\nboot, this allows saving battery, use this if your\nflashcard is sitting there and you're not using it.\n\n");
 
-        Draw_DrawString(120, posY, !cutTwlFlashcards ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? " TWLDISABLED" : " TWLENABLED ");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Press A to toggle power to card slot,\npress X to toggle TWL flashcard power at boot,\npress B to go back.\n\n");
+
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Current status:\n");
+        posY = Draw_DrawString(20, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? "Card slot power: DISABLED\n" : "Card slot power: ENABLED \n");
+
+        Draw_DrawString(20, posY, cutTwlFlashcards ? COLOR_RED : COLOR_GREEN, cutTwlFlashcards ? "TWL flashcard power at boot: DISABLED" : "TWL flashcard power at boot: ENABLED ");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
