@@ -27,6 +27,7 @@
 #include <3ds.h>
 #include "menus/nexus_config.h"
 #include "menus/home_button_sim.h"
+#include "menus/screenshot_settings.h"
 #include "luma_config.h"
 #include "draw.h"
 #include "utils.h" // for makeArmBranch
@@ -36,19 +37,20 @@ Menu nexusConfigMenu = {
     {
         { "Change the menu combo", METHOD, .method = &NexusConfigMenu_ChangeMenuCombo },
         { "HOME button simulation options...", MENU, .menu = &homeButtonSimMenu },
+        { "Screenshot settings options...", MENU, .menu = &screenshotSettingsMenu },
         { "Show temperature in Fahrenheit", METHOD, .method = &NexusConfigMenu_ToggleTemperatureUnit },
         { "Use 12 hours clock format", METHOD, .method = &NexusConfigMenu_ToggleClockFormat },
         { "Save Settings", METHOD, .method = &NexusConfigMenu_SaveSettings },
-        {}, // [TODO] screenshot settings
+        {},
     }
 };
 
 void NexusConfigMenu_UpdateTemperatureUnitEntry(void)
 {
     if (lumaMcuConfig.flags & MCUCFG_FLAG_TEMPERATURE_IN_FAHRENHEIT)
-        nexusConfigMenu.items[2].title = "Show temperature in Celsius   ";
+        nexusConfigMenu.items[3].title = "Show temperature in Celsius   ";
     else
-        nexusConfigMenu.items[2].title = "Show temperature in Fahrenheit";
+        nexusConfigMenu.items[3].title = "Show temperature in Fahrenheit";
 }
 
 void NexusConfigMenu_ToggleTemperatureUnit(void)
@@ -61,9 +63,9 @@ void NexusConfigMenu_ToggleTemperatureUnit(void)
 void NexusConfigMenu_UpdateClockFormatEntry(void)
 {
     if (lumaMcuConfig.flags & MCUCFG_FLAG_CLOCK_AM_PM)
-        nexusConfigMenu.items[3].title = "Use 24 hours clock format";
+        nexusConfigMenu.items[4].title = "Use 24 hours clock format";
     else
-        nexusConfigMenu.items[3].title = "Use 12 hours clock format";
+        nexusConfigMenu.items[4].title = "Use 12 hours clock format";
 }
 
 void NexusConfigMenu_ToggleClockFormat(void)

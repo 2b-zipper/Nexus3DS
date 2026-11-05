@@ -160,6 +160,7 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
             u8 autobootCtrAppmemtype;
             bool autobootCtrUseNs;
 
+            u8 screenshotFlags;
             u32 homeButtonSimFlags;
             u32 homeButtonCombo;
             u8 screenToggleTarget;
@@ -251,6 +252,7 @@ u32 installK11Extension(u8 *pos, u32 size, bool needToInitSd, u32 baseK11VA, u32
     info->autobootTwlTitleId = configData.autobootTwlTitleId;
     info->autobootCtrAppmemtype = configData.autobootCtrAppmemtype;
     info->autobootCtrUseNs = configData.autobootCtrUseNs;
+    info->screenshotFlags = configData.screenshotFlags;
     info->homeButtonSimFlags = configData.homeButtonSimFlags;
     info->homeButtonCombo = configData.homeButtonCombo;
     info->screenToggleTarget = configData.screenToggleTarget;

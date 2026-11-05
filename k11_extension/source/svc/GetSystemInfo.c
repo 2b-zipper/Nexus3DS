@@ -54,9 +54,7 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                 case 1:
                     *out = cfwInfo.commitHash;
                     break;
-                case 2:
-                    *out = (cfwInfo.configFormatVersionMajor << 16) | cfwInfo.configFormatVersionMinor;
-                    break;
+                // 2 is luma's config version, unused to avoid conflicts.
                 case 3:
                     *out = cfwInfo.config;
                     break;
@@ -89,6 +87,9 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                     break;
                 case 0x12:
                     *out = cfwInfo.autobootCtrUseNs;
+                    break;
+                case 0x79: // pls luma don't steal this
+                    *out = (cfwInfo.configFormatVersionMajor << 16) | cfwInfo.configFormatVersionMinor;
                     break;
                 case 0x80:
                     *out = fcramDescriptor->appRegion.regionSizeInBytes;
@@ -150,6 +151,9 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                     break;
                 case 0x182:
                     *out = cfwInfo.pluginWatcherLevel;
+                    break;
+                case 0x183:
+                    *out = cfwInfo.screenshotFlags;
                     break;
                 case 0x184:
                     *out = cfwInfo.homeButtonSimFlags;

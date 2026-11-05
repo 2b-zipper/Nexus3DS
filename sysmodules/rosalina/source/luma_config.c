@@ -34,6 +34,7 @@
 #include "menus/miscellaneous.h"
 #include "menus/sysconfig.h"
 #include "menus/home_button_sim.h"
+#include "menus/screenshot_settings.h"
 #include "menus/screen_toggle.h"
 #include "plugin/plgloader.h"
 
@@ -60,6 +61,7 @@ typedef struct CfgData {
     u8 autobootCtrAppmemtype;
     bool autobootCtrUseNs;
 
+    u8 screenshotFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;
     u8 screenToggleTarget;
@@ -257,6 +259,8 @@ static size_t LumaConfig_SaveLumaIniConfigToStr(char *out, const CfgData *cfg)
         bottomScreenFilterContrastStrs[0], bottomScreenFilterContrastStrs[1], bottomScreenFilterContrastStrs[2],
         (int)cfg->topScreenFilter.invert, (int)cfg->bottomScreenFilter.invert,
         cfg->autobootTwlTitleId, (int)cfg->autobootCtrAppmemtype, (int)cfg->autobootCtrUseNs,
+        (int)((cfg->screenshotFlags >> 0) & 1),
+        (int)((cfg->screenshotFlags >> 1) & 1),
         (int)((cfg->homeButtonSimFlags >> 0) & 1),
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
         homeButtonComboStr,
@@ -293,7 +297,7 @@ Result LumaConfig_SaveSettings(void)
     s64 out;
     bool isSdMode;
 
-    svcGetSystemInfo(&out, 0x10000, 2);
+    svcGetSystemInfo(&out, 0x10000, 79); // nexus uses 79 for config version to avoid conflicts with luma
     formatVersion = (u32)out;
     svcGetSystemInfo(&out, 0x10000, 3);
     config = (u32)out;
@@ -331,6 +335,9 @@ Result LumaConfig_SaveSettings(void)
     configData.autobootCtrAppmemtype = autobootCtrAppmemtype;
     configData.autobootCtrUseNs = autobootCtrUseNs;
     
+    configData.screenshotFlags = 0;
+    if (screenshotDateFolders) configData.screenshotFlags |= 1 << 0;
+    if (screenshotCombined) configData.screenshotFlags |= 1 << 1;
     configData.homeButtonSimFlags = 0;
     if (hideReturnToHomeMenu) configData.homeButtonSimFlags |= 1 << 0;
     if (enableHomeButtonCombo) configData.homeButtonSimFlags |= 1 << 1;

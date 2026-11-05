@@ -27,7 +27,6 @@
 ## TODO
 We're currently reworking some parts, here's what's currently missing:
 - Cut power to TWL flashcards (the previous implementation was bad though)
-- Screenshot date folders and combine screenshots in one file settings (currently always enabled)
 
 ## Screenshots
 

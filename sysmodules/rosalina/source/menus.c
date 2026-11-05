@@ -35,6 +35,7 @@
 #include "menus/miscellaneous.h"
 #include "menus/nexus_config.h"
 #include "menus/home_button_sim.h"
+#include "menus/screenshot_settings.h"
 #include "menus/sysconfig.h"
 #include "menus/screen_filters.h"
 #include "menus/plugin_options.h"
@@ -520,24 +521,26 @@ void RosalinaMenu_TakeScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-    if (R_SUCCEEDED(res)) {
-        char dateFolderPath[64];
-        char dateOnlyStr[16];
-        
-        strncpy(dateOnlyStr, dateTimeStr, 10);
-        dateOnlyStr[10] = '\0';
-        
-        sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-        res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-        if ((u32)res == 0xC82044BE) // directory already exists
-            res = 0;
-        FSUSER_CloseArchive(archive);
-    }
-    else
-    {
-        archive = 0;
-        goto end;
+    if (screenshotDateFolders) {
+        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+        if (R_SUCCEEDED(res)) {
+            char dateFolderPath[64];
+            char dateOnlyStr[16];
+            
+            strncpy(dateOnlyStr, dateTimeStr, 10);
+            dateOnlyStr[10] = '\0';
+            
+            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
+            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
+            if ((u32)res == 0xC82044BE) // directory already exists
+                res = 0;
+            FSUSER_CloseArchive(archive);
+        }
+        else
+        {
+            archive = 0;
+            goto end;
+        }
     }
 
     char titleIdStr[18] = {0};
@@ -547,12 +550,16 @@ void RosalinaMenu_TakeScreenshot(void)
     }
 
     char folderPath[64];
-    char dateOnlyStr[16];
-    strncpy(dateOnlyStr, dateTimeStr, 10);
-    dateOnlyStr[10] = '\0';
-    sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
+    if (screenshotDateFolders) {
+        char dateOnlyStr[16];
+        strncpy(dateOnlyStr, dateTimeStr, 10);
+        dateOnlyStr[10] = '\0';
+        sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
+    } else {
+        strcpy(folderPath, "/luma/screenshots");
+    }
 
-    if (true) { // [TODO] combined screenshots setting
+    if (screenshotCombined) {
         sprintf(filename, "%s/%s%s_cmb.bmp", folderPath, dateTimeStr, titleIdStr);
         TRY(IFile_Open(&file, archiveId, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, filename), FS_OPEN_CREATE | FS_OPEN_WRITE));
         TRY(RosalinaMenu_WriteCombinedScreenshot(&file, topWidth, bottomWidth, is3d));
@@ -685,24 +692,26 @@ void menuTakeSelfScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-    if (R_SUCCEEDED(res)) {
-        char dateFolderPath[64];
-        char dateOnlyStr[16];
-        
-        strncpy(dateOnlyStr, dateTimeStr, 10);
-        dateOnlyStr[10] = '\0';
-        
-        sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-        res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-        if ((u32)res == 0xC82044BE) // directory already exists
-            res = 0;
-        FSUSER_CloseArchive(archive);
-    }
-    else
-    {
-        archive = 0;
-        goto end;
+    if (screenshotDateFolders) {
+        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+        if (R_SUCCEEDED(res)) {
+            char dateFolderPath[64];
+            char dateOnlyStr[16];
+            
+            strncpy(dateOnlyStr, dateTimeStr, 10);
+            dateOnlyStr[10] = '\0';
+            
+            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
+            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
+            if ((u32)res == 0xC82044BE) // directory already exists
+                res = 0;
+            FSUSER_CloseArchive(archive);
+        }
+        else
+        {
+            archive = 0;
+            goto end;
+        }
     }
 
     char titleIdStr[18] = {0};

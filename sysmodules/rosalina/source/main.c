@@ -39,6 +39,7 @@
 #include "menus/cheats.h"
 #include "menus/sysconfig.h"
 #include "menus/home_button_sim.h"
+#include "menus/screenshot_settings.h"
 #include "menus/screen_toggle.h"
 #include "redshift/redshift.h"
 #include "input_redirection.h"
@@ -380,6 +381,7 @@ int main(void)
     ScreenFiltersMenu_LoadConfig();
     NexusConfigMenu_UpdateTemperatureUnitEntry();
     NexusConfigMenu_UpdateClockFormatEntry();
+    ScreenshotSettingsMenu_LoadConfig();
     HomeButtonSimMenu_LoadConfig();
     ScreenToggleMenu_LoadConfig();
 
