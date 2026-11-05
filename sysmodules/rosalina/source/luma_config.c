@@ -297,7 +297,7 @@ Result LumaConfig_SaveSettings(void)
     s64 out;
     bool isSdMode;
 
-    svcGetSystemInfo(&out, 0x10000, 79); // nexus uses 79 for config version to avoid conflicts with luma
+    svcGetSystemInfo(&out, 0x10000, 0x79); // nexus uses 0x79 for config version to avoid conflicts with luma (which is 2)
     formatVersion = (u32)out;
     svcGetSystemInfo(&out, 0x10000, 3);
     config = (u32)out;
