@@ -38,3 +38,4 @@ void MiscellaneousMenu_UpdateTimeDateNtp(void);
 void MiscellaneousMenu_NullifyUserTimeOffset(void);
 void MiscellaneousMenu_DumpDspFirm(void);
 void MiscellaneousMenu_EditPlayCoins(void);
+void MiscellaneousMenu_Peek(void);

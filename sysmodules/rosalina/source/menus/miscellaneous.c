@@ -75,6 +75,7 @@ Menu miscellaneousMenu = {
         { "Nullify user time offset", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
         { "Dump DSP firmware", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
         { "Set the number of Play Coins", METHOD, .method = &MiscellaneousMenu_EditPlayCoins },
+        { "Peek game (B to go back)", METHOD, .method = &MiscellaneousMenu_Peek },
         {},
     }
 };
@@ -564,4 +565,13 @@ void MiscellaneousMenu_EditPlayCoins(void)
             }
         }
     } while (!menuShouldExit);
+}
+
+void MiscellaneousMenu_Peek(void) {
+    Draw_Lock();
+    Draw_RestoreFramebuffer();
+    while((!(waitInput() & KEY_B) && !menuShouldExit))
+        svcSleepThread(50 * 1000 * 1000LL);
+    Draw_SetupFramebuffer();
+    Draw_Unlock();
 }
