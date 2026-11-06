@@ -239,11 +239,11 @@ u8 FileOptions(PluginEntry *entries, u8 *count, u8 index, u8 *defaultPlgIndex)
             u32 color = options[i].enabled ? COLOR_WHITE : COLOR_GRAY;
             
             if (isSelected) {
-                Draw_DrawString(15, 40 + (i + 2) * SPACING_Y, COLOR_ORANGE, ">>");
+                Draw_DrawString(15, 40 + (i + 2) * SPACING_Y, COLOR_ORANGE, ">");
                 u32 selectedColor = options[i].enabled ? COLOR_CYAN : COLOR_LIGHT_BLUE;
                 Draw_DrawString(35, 40 + (i + 2) * SPACING_Y, selectedColor, options[i].name);
             } else {
-                Draw_DrawString(15, 40 + (i + 2) * SPACING_Y, COLOR_GRAY, " *");
+                Draw_DrawString(15, 40 + (i + 2) * SPACING_Y, COLOR_GRAY, "*");
                 Draw_DrawString(35, 40 + (i + 2) * SPACING_Y, color, options[i].name);
             }
         }

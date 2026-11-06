@@ -2,8 +2,8 @@
 # This file defines the version numbers for Nexus3DS and the base Luma3DS version
 
 NEXUS_VERSION_MAJOR := 0
-NEXUS_VERSION_MINOR := 4
-NEXUS_VERSION_BUILD := 2
+NEXUS_VERSION_MINOR := 5
+NEXUS_VERSION_BUILD := 0
 
 LUMA_VERSION_MAJOR := 13
 LUMA_VERSION_MINOR := 5

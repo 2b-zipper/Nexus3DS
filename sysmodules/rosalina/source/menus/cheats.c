@@ -2087,10 +2087,10 @@ void RosalinaMenu_Cheats(void)
                     bool isSelected = (j == selected);
                     u32 color = cheats[j]->valid ? COLOR_WHITE : COLOR_RED;
                     if (isSelected) {
-                        Draw_DrawString(15, 40 + i * SPACING_Y, COLOR_ORANGE, ">>");
+                        Draw_DrawString(15, 40 + i * SPACING_Y, COLOR_ORANGE, ">");
                         Draw_DrawString(35, 40 + i * SPACING_Y, COLOR_CYAN, buf);
                     } else {
-                        Draw_DrawString(15, 40 + i * SPACING_Y, COLOR_GRAY, " *");
+                        Draw_DrawString(15, 40 + i * SPACING_Y, COLOR_GRAY, "*");
                         Draw_DrawString(35, 40 + i * SPACING_Y, color, buf);
                     }
                 }

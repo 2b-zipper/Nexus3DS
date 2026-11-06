@@ -470,9 +470,9 @@ void SysConfigMenu_ControlWifi(void)
         for (u32 i = 0; i < 3; i++)
         {
             if (slot == i) {
-                Draw_DrawString(15, posY + SPACING_Y * i, COLOR_ORANGE, ">>");
+                Draw_DrawString(15, posY + SPACING_Y * i, COLOR_ORANGE, ">");
             } else {
-                Draw_DrawString(15, posY + SPACING_Y * i, COLOR_GRAY, " *");
+                Draw_DrawString(15, posY + SPACING_Y * i, COLOR_GRAY, "*");
             }
             Draw_DrawFormattedString(35, posY + SPACING_Y * i, COLOR_WHITE, "[%d] %s", (int)i + 1, ssids[i]);
         }

@@ -317,7 +317,8 @@ void RosalinaMenu_ShowCredits(void)
                 "  other people\n\n"
                 "People who made this fork possible:\n"
                 "  DullPointer, Tekito-256, Gruetzig, cooolgamer,\n"
-                "  suprdratts/hide0123, Pixel-Pop, 2b-zipper"
+                "  suprdratts/hide0123, Pixel-Pop, 2b-zipper\n"
+                "  blurro, Alexyo21"
             ));
 
         Draw_FlushFramebuffer();

@@ -457,7 +457,7 @@ void Draw_DrawMenuCursor(u32 yPos, bool selected, const char *text, const char *
             scrollWait = scrollInitialWaitFrames;
         }
         
-        Draw_DrawString(15, yPos, COLOR_ORANGE, ">>");
+        Draw_DrawString(15, yPos, COLOR_ORANGE, ">");
         
         if (hasCheckbox) {
             Draw_DrawString(35, yPos, COLOR_CYAN, checkbox);
@@ -487,10 +487,10 @@ void Draw_DrawMenuCursor(u32 yPos, bool selected, const char *text, const char *
         } else {
             Draw_DrawString(textStartX, yPos, COLOR_CYAN, text);
         }
-        Draw_DrawString(250, yPos, COLOR_ORANGE, "<<        ");
+        Draw_DrawString(250, yPos, COLOR_ORANGE, "<           ");
     } else {
-        Draw_DrawString(15, yPos, COLOR_GRAY, " *");
-        Draw_DrawString(250, yPos, COLOR_WHITE, "  ");
+        Draw_DrawString(15, yPos, COLOR_GRAY, "*");
+        Draw_DrawString(250, yPos, COLOR_WHITE, " ");
         
         if (hasCheckbox) {
             Draw_DrawString(35, yPos, COLOR_WHITE, checkbox);
