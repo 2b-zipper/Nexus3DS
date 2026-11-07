@@ -587,15 +587,15 @@ static int configIniHandler(void* user, const char* section, const char* name, c
             CHECK_PARSE_OPTION(-1);
         }
     } else if (strcmp(section, "misc") == 0) {
-        if (strcmp(name, "screenshot_date_folders") == 0) {
-            bool opt;
-            CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->screenshotFlags = opt ? cfg->screenshotFlags | (1 << 0) : cfg->screenshotFlags & ~(1 << 0);
+        if (strcmp(name, "screenshot_folder") == 0) {
+            s64 opt;
+            CHECK_PARSE_OPTION(parseDecIntOption(&opt, value, 0, 2));
+            cfg->screenshotFolder = (u8)opt;
             return 1;
         } else if (strcmp(name, "screenshot_combine_screens") == 0) {
             bool opt;
             CHECK_PARSE_OPTION(parseBoolOption(&opt, value));
-            cfg->screenshotFlags = opt ? cfg->screenshotFlags | (1 << 1) : cfg->screenshotFlags & ~(1 << 1);
+            cfg->screenshotFlags = opt ? cfg->screenshotFlags | (1 << 0) : cfg->screenshotFlags & ~(1 << 0);
             return 1;
         } else if (strcmp(name, "hide_return_to_home_menu") == 0) {
             bool opt;
@@ -730,8 +730,8 @@ static size_t saveLumaIniConfigToStr(char *out)
         bottomScreenFilterContrastStrs[0], bottomScreenFilterContrastStrs[1], bottomScreenFilterContrastStrs[2],
         (int)cfg->topScreenFilter.invert, (int)cfg->bottomScreenFilter.invert,
         cfg->autobootTwlTitleId, (int)cfg->autobootCtrAppmemtype, (int)cfg->autobootCtrUseNs,
+        (unsigned int) cfg->screenshotFolder,
         (int)((cfg->screenshotFlags >> 0) & 1),
-        (int)((cfg->screenshotFlags >> 1) & 1),
         (int)((cfg->homeButtonSimFlags >> 0) & 1),
         (int)((cfg->homeButtonSimFlags >> 1) & 1),
         homeButtonComboStr,
@@ -893,7 +893,8 @@ bool readConfig(void)
         configData.bottomScreenFilter = configData.topScreenFilter;
         configData.autobootTwlTitleId = AUTOBOOT_DEFAULT_TWL_TID;
 
-        configData.screenshotFlags = 1; // enable date folders
+        configData.screenshotFolder = 0; // default luma/screenshots
+        configData.screenshotFlags = 0;
         configData.homeButtonCombo = 1u << 2 | 1u << 8; // Select+R
         configData.screenToggleTarget = 0; // None - disabled
         configData.screenToggleCombo = 1u << 3 | 1u << 2; // Start+Select

@@ -153,18 +153,21 @@ Result GetSystemInfoHook(s64 *out, s32 type, s32 param)
                     *out = cfwInfo.pluginWatcherLevel;
                     break;
                 case 0x183:
-                    *out = cfwInfo.screenshotFlags;
+                    *out = cfwInfo.screenshotFolder;
                     break;
                 case 0x184:
-                    *out = cfwInfo.homeButtonSimFlags;
+                    *out = cfwInfo.screenshotFlags;
                     break;
                 case 0x185:
-                    *out = cfwInfo.homeButtonCombo;
+                    *out = cfwInfo.homeButtonSimFlags;
                     break;
                 case 0x186:
-                    *out = cfwInfo.screenToggleTarget;
+                    *out = cfwInfo.homeButtonCombo;
                     break;
                 case 0x187:
+                    *out = cfwInfo.screenToggleTarget;
+                    break;
+                case 0x188:
                     *out = cfwInfo.screenToggleCombo;
                     break;
                 case 0x200: // isRelease

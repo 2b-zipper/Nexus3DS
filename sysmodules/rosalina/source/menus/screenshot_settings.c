@@ -5,14 +5,25 @@
 #include "luma_config.h"
 #include "menu.h"
 
-bool screenshotDateFolders = false;
+u8 screenshotFolder = 0;
 bool screenshotCombined = false;
 
 static void updateMenuTitles(void)
 {
-    screenshotSettingsMenu.items[0].title = screenshotDateFolders ? 
-        "Save screenshots in date folders: [Enabled] " : 
-        "Save screenshots in date folders: [Disabled]";
+    switch(screenshotFolder) {
+        case 0:
+            screenshotSettingsMenu.items[0].title = "Screenshots output folder: Default";
+            break;
+        case 1:
+            screenshotSettingsMenu.items[0].title = "Screenshots output folder: Date";
+            break;
+        case 2:
+            screenshotSettingsMenu.items[0].title = "Screenshots output folder: Title ID";
+            break;
+        default:
+            screenshotSettingsMenu.items[0].title = "Screenshots output folder: Default"; // should never happen
+            break;
+    }
 
     screenshotSettingsMenu.items[1].title = screenshotCombined ? 
         "Combine top/bottom screens: [Enabled] " : 
@@ -28,9 +39,15 @@ void ScreenshotSettingsMenu_LoadConfig(void)
     
     if (R_SUCCEEDED(res))
     {
+        screenshotFolder = (u32)out;
+    }
+
+    res = svcGetSystemInfo(&out, 0x10000, 0x184);
+    
+    if (R_SUCCEEDED(res))
+    {
         u32 flags = (u32)out;
-        screenshotDateFolders = (flags >> 0) & 1;
-        screenshotCombined = (flags >> 1) & 1;
+        screenshotCombined = (flags >> 0) & 1;
     }
     
     updateMenuTitles();
@@ -39,14 +56,14 @@ void ScreenshotSettingsMenu_LoadConfig(void)
 Menu screenshotSettingsMenu = {
     "Screenshot settings options",
     {
-        {"", METHOD, .method = &ScreenshotSettingsMenu_ToggleDateFolders},
+        {"", METHOD, .method = &ScreenshotSettingsMenu_ChangeFolderOutput},
         {"", METHOD, .method = &ScreenshotSettingsMenu_ToggleCombine},
         {},
     }};
 
-void ScreenshotSettingsMenu_ToggleDateFolders(void)
+void ScreenshotSettingsMenu_ChangeFolderOutput(void)
 {
-    screenshotDateFolders = !screenshotDateFolders;
+    screenshotFolder = (screenshotFolder + 1) % 3;
     updateMenuTitles();
     LumaConfig_RequestSaveSettings();
 }

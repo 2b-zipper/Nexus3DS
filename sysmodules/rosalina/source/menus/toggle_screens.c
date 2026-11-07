@@ -34,14 +34,14 @@ void ScreenToggleMenu_LoadConfig(void)
     s64 out = 0;
     Result res;
 
-    res = svcGetSystemInfo(&out, 0x10000, 0x186);
+    res = svcGetSystemInfo(&out, 0x10000, 0x187);
     
     if (R_SUCCEEDED(res))
     {
         screenToggleTarget = (u32)out;
     }
 
-    res = svcGetSystemInfo(&out, 0x10000, 0x187);
+    res = svcGetSystemInfo(&out, 0x10000, 0x188);
     if (R_SUCCEEDED(res))
     {
         screenToggleCombo = (u32)out;

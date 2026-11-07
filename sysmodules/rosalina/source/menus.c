@@ -522,28 +522,6 @@ void RosalinaMenu_TakeScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    if (screenshotDateFolders) {
-        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-        if (R_SUCCEEDED(res)) {
-            char dateFolderPath[64];
-            char dateOnlyStr[16];
-            
-            strncpy(dateOnlyStr, dateTimeStr, 10);
-            dateOnlyStr[10] = '\0';
-            
-            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-            if ((u32)res == 0xC82044BE) // directory already exists
-                res = 0;
-            FSUSER_CloseArchive(archive);
-        }
-        else
-        {
-            archive = 0;
-            goto end;
-        }
-    }
-
     char titleIdStr[18] = {0};
     u64 titleId = GetCurrentTitleId();
     if (titleId != 0) {
@@ -551,17 +529,55 @@ void RosalinaMenu_TakeScreenshot(void)
     }
 
     char folderPath[64];
-    if (screenshotDateFolders) {
-        char dateOnlyStr[16];
-        strncpy(dateOnlyStr, dateTimeStr, 10);
-        dateOnlyStr[10] = '\0';
-        sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
-    } else {
-        strcpy(folderPath, "/luma/screenshots");
+
+    switch (screenshotFolder) {
+        case 0: // default
+            strcpy(folderPath, "/luma/screenshots");
+            break;
+        case 1: // date
+            char dateOnlyStr[16];
+            strncpy(dateOnlyStr, dateTimeStr, 10);
+            dateOnlyStr[10] = '\0';
+
+            res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+            if (R_SUCCEEDED(res)) {
+                sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
+                res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, folderPath), 0);
+                if ((u32)res == 0xC82044BE) // directory already exists
+                    res = 0;
+                FSUSER_CloseArchive(archive);
+            }
+            else
+            {
+                archive = 0;
+                goto end;
+            }
+            break;
+        case 2: // titleid
+            if(titleId == 0) {
+                strcpy(folderPath, "/luma/screenshots");
+                break;
+            }
+            res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
+            if (R_SUCCEEDED(res)) {
+                sprintf(folderPath, "/luma/screenshots/%016llX", titleId);
+                res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, folderPath), 0);
+                if ((u32)res == 0xC82044BE) // directory already exists
+                    res = 0;
+                FSUSER_CloseArchive(archive);
+            }
+            else
+            {
+                archive = 0;
+                goto end;
+            }
+            break;
+        default: // should never happen, but better be safe
+            strcpy(folderPath, "/luma/screenshots");
     }
 
     if (screenshotCombined) {
-        sprintf(filename, "%s/%s%s_cmb.bmp", folderPath, dateTimeStr, titleIdStr);
+        sprintf(filename, "%s/%s%s.bmp", folderPath, dateTimeStr, titleIdStr);
         TRY(IFile_Open(&file, archiveId, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, filename), FS_OPEN_CREATE | FS_OPEN_WRITE));
         TRY(RosalinaMenu_WriteCombinedScreenshot(&file, topWidth, bottomWidth, is3d));
         TRY(IFile_Close(&file));
@@ -659,7 +675,7 @@ void menuTakeSelfScreenshot(void)
     IFile file = {0};
     Result res = 0;
 
-    char filename[256];
+    char filename[100];
     char dateTimeStr[64];
 
     FS_Archive archive;
@@ -670,7 +686,7 @@ void menuTakeSelfScreenshot(void)
     timeSpentConvertingScreenshot = 0;
     timeSpentWritingScreenshot = 0;
 
-    if (R_FAILED(svcGetSystemInfo(&out, 0x10000, 0x203))) svcBreak(USERBREAK_ASSERT);
+    if(R_FAILED(svcGetSystemInfo(&out, 0x10000, 0x203))) svcBreak(USERBREAK_ASSERT);
     isSdMode = (bool)out;
 
     archiveId = isSdMode ? ARCHIVE_SDMC : ARCHIVE_NAND_RW;
@@ -678,10 +694,10 @@ void menuTakeSelfScreenshot(void)
     svcFlushEntireDataCache();
 
     res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-    if (R_SUCCEEDED(res))
+    if(R_SUCCEEDED(res))
     {
         res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, "/luma/screenshots"), 0);
-        if ((u32)res == 0xC82044BE) // directory already exists
+        if((u32)res == 0xC82044BE) // directory already exists
             res = 0;
         FSUSER_CloseArchive(archive);
     }
@@ -693,41 +709,7 @@ void menuTakeSelfScreenshot(void)
 
     dateTimeToString(dateTimeStr, osGetTime(), true);
 
-    if (screenshotDateFolders) {
-        res = FSUSER_OpenArchive(&archive, archiveId, fsMakePath(PATH_EMPTY, ""));
-        if (R_SUCCEEDED(res)) {
-            char dateFolderPath[64];
-            char dateOnlyStr[16];
-            
-            strncpy(dateOnlyStr, dateTimeStr, 10);
-            dateOnlyStr[10] = '\0';
-            
-            sprintf(dateFolderPath, "/luma/screenshots/%s", dateOnlyStr);
-            res = FSUSER_CreateDirectory(archive, fsMakePath(PATH_ASCII, dateFolderPath), 0);
-            if ((u32)res == 0xC82044BE) // directory already exists
-                res = 0;
-            FSUSER_CloseArchive(archive);
-        }
-        else
-        {
-            archive = 0;
-            goto end;
-        }
-    }
-
-    char titleIdStr[18] = {0};
-    u64 titleId = GetCurrentTitleId();
-    if (titleId != 0) {
-        sprintf(titleIdStr, "_%016llX", titleId);
-    }
-
-    char folderPath[64];
-    char dateOnlyStr[16];
-    strncpy(dateOnlyStr, dateTimeStr, 10);
-    dateOnlyStr[10] = '\0';
-    sprintf(folderPath, "/luma/screenshots/%s", dateOnlyStr);
-
-    sprintf(filename, "%s/rosalina_menu_%s%s.bmp", folderPath, dateTimeStr, titleIdStr);
+    sprintf(filename, "/luma/screenshots/rosalina_menu_%s.bmp", dateTimeStr);
 
     TRY(IFile_Open(&file, archiveId, fsMakePath(PATH_EMPTY, ""), fsMakePath(PATH_ASCII, filename), FS_OPEN_CREATE | FS_OPEN_WRITE));
     TRY(menuWriteSelfScreenshot(&file));

@@ -25,7 +25,7 @@ void HomeButtonSimMenu_LoadConfig(void)
     s64 out = 0;
     Result res;
 
-    res = svcGetSystemInfo(&out, 0x10000, 0x184);
+    res = svcGetSystemInfo(&out, 0x10000, 0x185);
     
     if (R_SUCCEEDED(res))
     {
@@ -34,7 +34,7 @@ void HomeButtonSimMenu_LoadConfig(void)
         enableHomeButtonCombo = (flags >> 1) & 1;
     }
 
-    res = svcGetSystemInfo(&out, 0x10000, 0x185);
+    res = svcGetSystemInfo(&out, 0x10000, 0x186);
     if (R_SUCCEEDED(res))
     {
         homeButtonCombo = (u32)out;

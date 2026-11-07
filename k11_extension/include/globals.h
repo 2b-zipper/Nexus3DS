@@ -166,6 +166,7 @@ typedef struct CfwInfo
     u8 autobootCtrAppmemtype;
     bool autobootCtrUseNs;
 
+    u8 screenshotFolder;
     u8 screenshotFlags;
     u32 homeButtonSimFlags;
     u32 homeButtonCombo;

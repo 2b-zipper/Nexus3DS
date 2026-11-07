@@ -37,6 +37,7 @@
 **Nexus3DS** is an enhanced fork of Luma3DS that incorporates numerous community features and improvements. This project builds upon several Luma3DS forks, combining the best features while adding unique enhancements for an improved user experience.
 
 ## Limitations
+
 **CTGP7** does not work with Nexus3DS.
 
 The reason why is because there is an anti-cheat which prevent the use of Luma3DS forks. Which is a good thing to make sure the CTGP network is safe from cheaters.
@@ -47,54 +48,70 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 
 ## Enhanced Features
 
-**Core Enhancements:**
+**Configuration:**
+
+* Modified Configuration menu layout and appearance
 * Changed the configuration file name from `config.ini` to `nexusconfig.ini` to prevent conflicts with official Luma3DS
-* Modified Configuration menu and Rosalina menu colors and layout
-* Set the number of Play Coins - *Original by [Gruetzig](https://github.com/Gruetzig/Luma3DS/commit/1e329b55dade61ba74a0bb1cc6e59d2504d0bde1)*
-* Plugin selector - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*  
-  > **Note:** To access the plugin selector after setting a default plugin, hold the **Select** button while launching a game
-* Plugin Watcher - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*  
-  > **Note:** Monitors and alerts on potentially sensitive plugin operations (file/directory deletion, network connections, camera access). When enabled, displays a confirmation dialog allowing you to continue or block the operation
-* Support for v0.5.x 3GX plugin loading - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*
-* Force reboot option - *Original by [cooolgamer](https://github.com/cooolgamer)*
-* Time display in Rosalina menu - *Original by [suprdratts/hide0123](https://github.com/suprdratts/Luma3DS/commit/766173d65eeb52baac90e9e68b456ad93ebaab7b)*
-* Logo.bin loading feature - *Original by [Pixel-Pop](https://github.com/Pixel-Pop/Luma3DS/commit/d225d9fa507dcccce3a6c86d0a38f7998f39b7a2)*
-* Detailed screen brightness adjustment - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/83e8d471a377bc6960fae00d6694f5fe86dcca42)*
-* Volume display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/dc636d82492d1e87eb51785fa7f2a98617e7ece9)*
-* N3DS clock + L2 status display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/2dbfa8b5c9b719b7f3056691f54332f42da6de8d)*
-* 3NX Sysplugin loading ([see more here](https://github.com/Blurro/3NX-Plugin-DevKit)) - *Original by [@Blurro](https://github.com/Blurro)*
-
-* Title ID display in System info
-
+* Merged "Enable DSi external filters" option into "Enable loading external FIRMs and modules" option in configuration menu
+* Re-added splash duration setting option in configuration menu (custom values also supported)
+* Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
+* Customizable LCD backlight toggle shortcut (Does not work on old 2DS)
+* Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)* (now implemented to luma)
+* Cut power to TWL Flashcards (in rosalina menu, system config, cut power to card slot) - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
 * **HOME button simulation options** in Rosalina menu:
   * Toggle visibility of "Return to HOME Menu" option (useful if your HOME button is broken)
   * Enable/disable HOME button combo simulation
   * Configure key combo to simulate HOME button press  
   > **Note:** HOME button key combo only works inside applications, not on HOME Menu
-* Merged "Enable DSi external filters" option into "Enable loading external FIRMs and modules" option in configuration menu
-* Restored "Enable dev UNITINFO" and "Enable Rosalina on SAFE_FIRM" options in configuration menu
-* Re-added splash duration setting option in configuration menu (custom values also supported)
-* Added no errdisp + instant reboot option - Press A+B+X+Y+Start to instantly reboot  
-  > **Note:** Configurable via `nexusconfig.ini` only. Using instant reboot may corrupt your SD card
 * Day/Night mode allowing to change the brightness, toggle LEDs, etc. At a desired time - *Original by [cooolgamer](https://github.com/cooolgamorg/Starlight3DS/commit/d0eb60bc21f464e7269dc7b93416e89423232de9) based on [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/54cdedce2a55b8deae730d0af077ee2907f0444b)*
-* Random little messages in the arm11/9 exception handler :)
-* Screenshots include title ID in filename
-* Customizable LCD backlight toggle shortcut (Does not work on old 2DS)
-* Experimental faster boot time for big sd cards (Expert option, may corrupt your sd card if full)
 
-**Extra Configuration Menu Options:**
-* Automatically suppress LEDs - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)* (now implemented to luma)
-* Cut power to TWL Flashcards - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
-* Cut 3DS Wifi in sleep mode - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/174ed486ab59bd249488c9035682fa7d058d1e80)*
-* Save screenshots in date folders
-* Combine top/bottom screenshots (saved with _cmb suffix)
-* Use Fahrenheit for temperature display (included to luma now)
-* Use 12-hour clock format in Rosalina menu (defaults to 24-hour)
+**Rosalina menu:**
+
+* Modified Rosalina menu layout and appearance
+* Time display in Rosalina menu (with 12/24 hours format) - *Original by [suprdratts/hide0123](https://github.com/suprdratts/Luma3DS/commit/766173d65eeb52baac90e9e68b456ad93ebaab7b)*
+* Detailed screen brightness adjustment - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/83e8d471a377bc6960fae00d6694f5fe86dcca42)*
+* Volume display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS_archive/commit/dc636d82492d1e87eb51785fa7f2a98617e7ece9)*
+* N3DS clock + L2 status display in Rosalina menu - *Original by [DullPointer](https://github.com/DullPointer/Luma3DS/commit/2dbfa8b5c9b719b7f3056691f54332f42da6de8d)*
+* Toggle wifi shortcut using the start button
+* Title ID display in System info
+
+**3NX Sysplugin loading** *by [@Blurro](https://github.com/Blurro)*
+
+* Get sysplugins from [this repository](https://github.com/Blurro/MENU-Sysplugin-3DS)
+* Refer to [this repository](https://github.com/Blurro/3NX-Plugin-DevKit) for technical explainations
+
+**Screenshots**
+
+* Screenshots include title ID in filename
+* Save screenshots in date or titleID folders
+* Combine top/bottom screenshots
+
+**3GX Plugins:**
+
+* Plugin selector - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*  
+  > **Note:** To access the plugin selector after setting a default plugin, hold the **Select** button while launching a game
+* Plugin Watcher - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*  
+  > **Note:** Monitors and alerts on potentially sensitive plugin operations (file/directory deletion, network connections, camera access). When enabled, displays a confirmation dialog allowing you to continue or block the operation
+* Support for v0.5.x 3GX plugin loading - *Original by [Tekito-256](https://github.com/Tekito-256/Luma3DS)*
+
+**Misc features**
+
+* Set the number of Play Coins - *Original by [Gruetzig](https://github.com/Gruetzig/Luma3DS/commit/1e329b55dade61ba74a0bb1cc6e59d2504d0bde1)*
+* Logo.bin override in luma/logo.bin - *Original by [Pixel-Pop](https://github.com/Pixel-Pop/Luma3DS/commit/d225d9fa507dcccce3a6c86d0a38f7998f39b7a2)*
+* Random little messages in the arm11/9 exception handler :)
 
 **Expert Zone:**
-- To toggle hidden options quickly, you can use the Konami code on the luma configuration menu. WARNING: These are advanced options not meant to be used by regular users, use carefully!
 
-For detailed technical information, please refer to the [official Luma3DS documentation](https://github.com/LumaTeam/Luma3DS/wiki) and [README](https://github.com/LumaTeam/Luma3DS/blob/master/README.md).
+* To toggle hidden options quickly, you can use the Konami code in the luma configuration menu.
+  > **WARNING:** These are advanced options not meant to be used by regular users, use carefully!
+* No errdisp + instant reboot option - Press A+B+X+Y+Start to instantly reboot - *Original by [cooolgamer](https://github.com/cooolgamer)*
+  > **Note:** Using instant reboot may corrupt your SD card
+* Experimental faster boot time for big sd cards
+  > **Note:** Using this may corrupt your SD card if full
+
+**Original features and documentation:**
+
+For detailed information, please refer to the [official Luma3DS documentation](https://github.com/LumaTeam/Luma3DS/wiki) and [README](https://github.com/LumaTeam/Luma3DS/blob/master/README.md).
 
 ## Installation and Requirements
 
@@ -117,27 +134,6 @@ To build from source, see [Building from source](#building-from-source) below.
 - **Chainloader menu**: Press <kbd>Start</kbd> at boot - payloads go in `/luma/payloads/*.firm`
 - **Rosalina menu**: <kbd>L+Down+Select</kbd> (default combo)
 - **Home button simulation**: <kbd>R+Select</kbd> (default combo, if enabled in settings)
-
-## Building from source
-
-**Prerequisites:**
-* git
-* [makerom](https://github.com/jakcron/Project_CTR) in `$PATH`
-* [firmtool](https://github.com/TuxSH/firmtool) installed
-* up-to-date devkitARM and libctru:
-  * Install `dkp-pacman`: https://devkitpro.org/wiki/devkitPro_pacman
-  * Install 3DS dev tools: `sudo dkp-pacman -S 3ds-dev --needed`
-
-**Build steps:**
-```bash
-git clone https://github.com/2b-zipper/Nexus3DS.git
-cd Nexus3DS
-make
-```
-
-The build produces a single file: `boot.firm`. Copy it to the root of your SD card.
-
-**Note:** For easy SD card file transfer, consider using [ftpd](https://github.com/mtheall/ftpd).
 
 ## Maintainers
 
@@ -164,6 +160,19 @@ The build produces a single file: `boot.firm`. Copy it to the root of your SD ca
 **Nexus3DS specific:**
 * No known major issues at this time. Please report any bugs on the [Issues page](https://github.com/2b-zipper/Nexus3DS/issues).
 
+## Building from source
+
+To build Luma3DS, the following is needed:
+* git
+* [makerom](https://github.com/jakcron/Project_CTR) in `$PATH`
+* [firmtool](https://github.com/TuxSH/firmtool) installed
+* up-to-date devkitARM and libctru:
+    * install `dkp-pacman` (or, for distributions that already provide pacman, add repositories): https://devkitpro.org/wiki/devkitPro_pacman
+    * install packages from `3ds-dev` metapackage: `sudo dkp-pacman -S 3ds-dev --needed`
+    * while libctru and Luma3DS releases are kept in sync, you may have to build libctru from source for non-release Luma3DS commits
+
+While Luma3DS releases are bundled with `3ds-hbmenu`, Luma3DS actually compiles into one single file: `boot.firm`. Just copy it over to the root of your SD card ([ftpd](https://github.com/mtheall/ftpd) is the easiest way to do so), and you're done.
+
 ## Licensing
 This software is licensed under the terms of the GPLv3. You can find a copy of the license in the LICENSE.txt file.
 
@@ -173,7 +182,7 @@ Files in the GDB stub are instead triple-licensed as MIT or "GPLv2 or any later 
 
 Nexus3DS is based on the work of many talented developers from the original Luma3DS project and various community forks.
 
-For a complete list of contributors and acknowledgments, please see the [official Luma3DS credits](https://github.com/LumaTeam/Luma3DS/blob/master/README.md#credits).
+For a complete list of contributors and acknowledgments, please refer to the [official Luma3DS credits](https://github.com/LumaTeam/Luma3DS/blob/master/README.md#credits).
 
 **People who made this fork possible (in no particular order):**
 - **[@DullPointer](https://github.com/DullPointer)** - Additional features ([Source Repository](https://github.com/DullPointer/Luma3DS_archive))

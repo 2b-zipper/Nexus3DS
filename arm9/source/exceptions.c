@@ -84,7 +84,7 @@ void detectAndProcessExceptionDumps(void)
         "Oof", "Did you try to turn it off and back on?", ":(", "Maybe don't do that again", "Skill issue",
         "Congrats! You won a crash!", "Welcome to Arch Linux!", "Game Over.", "Nah I'd crash", "But it refused.",
         "No fun allowed.", "This crash is sponsored by Raid Shadow Legends", "Sata andagi", "You gotta believe!",
-        "*EXTREMELY LOUD INCORRECT BUZZER SFX*"
+        "*EXTREMELY LOUD INCORRECT BUZZER SFX*", "Miku Miku BEAAAAAAAAAM", "We have a problem.", "Sure, here's a detailed crash explaination:"
     };
 
     static const u32 faultStatusValues[] = {

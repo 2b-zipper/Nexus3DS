@@ -4,9 +4,9 @@
 #include "menu.h"
 
 extern Menu screenshotSettingsMenu;
-extern bool screenshotDateFolders;
+extern u8 screenshotFolder;
 extern bool screenshotCombined;
 
-void ScreenshotSettingsMenu_ToggleDateFolders(void);
+void ScreenshotSettingsMenu_ChangeFolderOutput(void);
 void ScreenshotSettingsMenu_ToggleCombine(void);
 void ScreenshotSettingsMenu_LoadConfig(void);
