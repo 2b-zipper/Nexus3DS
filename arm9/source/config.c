@@ -915,33 +915,30 @@ bool readConfig(void)
 
 void askForUpgradeProcess(void)
 {
-    initScreens();
+    if(isSdMode) {
+        initScreens();
 
-    u32 posY = drawString(true, 10, 10, COLOR_ORANGE, "Nexus3DS backup confirmation\n");
-
-    if(isSdMode){
+        u32 posY = drawString(true, 10, 10, COLOR_ORANGE, "Nexus3DS backup confirmation\n");
         posY = drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Do you want to install Nexus3DS to CTRNAND?\nThis enables you to boot without an sd card.\n\nDoing so will also backup essential files.\n");
-    } else {
-        posY = drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Do you want to backup essential files\nto the CTRNAND?\n");
-    }
+        posY = drawString(true, 10, posY + SPACING_Y, COLOR_ORANGE, "Press A to confirm, X to cancel.\nIf you're unsure, press A.\n");
 
-    posY = drawString(true, 10, posY + SPACING_Y, COLOR_ORANGE, "Press A to confirm, X to cancel.\nIf you're unsure, press A.\n");
+        while (true) {
+            u32 pressed = waitInput(false);
 
-    while (true) {
-        u32 pressed = waitInput(false);
-
-        if (pressed & (BUTTON_A | BUTTON_X)) {
-            if (pressed & BUTTON_A) {
-                doLumaUpgradeProcess() ? drawString(true, 10, posY + SPACING_Y, COLOR_GREEN, "Backup complete!") :
-                                         drawString(true, 10, posY + SPACING_Y, COLOR_RED, "Backup failed!");
-            } else {
-                drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Backup skipped.");
+            if (pressed & (BUTTON_A | BUTTON_X)) {
+                if (pressed & BUTTON_A) {
+                    doLumaUpgradeProcess() ? drawString(true, 10, posY + SPACING_Y, COLOR_GREEN, "Backup complete!") :
+                                            drawString(true, 10, posY + SPACING_Y, COLOR_RED, "Backup failed! Check your SD card!");
+                } else {
+                    drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Backup skipped.");
+                }
+                break;
             }
-
-            break;
         }
+        wait(2000ULL);
+    } else {
+        doLumaUpgradeProcess(); // silent, it just cleans up old files
     }
-    wait(2000ULL);
 }
 
 u32 getSplashDurationMs(void)
