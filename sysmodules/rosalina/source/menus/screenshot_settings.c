@@ -39,7 +39,7 @@ void ScreenshotSettingsMenu_LoadConfig(void)
     
     if (R_SUCCEEDED(res))
     {
-        screenshotFolder = (u32)out;
+        screenshotFolder = (u8)out;
     }
 
     res = svcGetSystemInfo(&out, 0x10000, 0x184);
@@ -65,12 +65,10 @@ void ScreenshotSettingsMenu_ChangeFolderOutput(void)
 {
     screenshotFolder = (screenshotFolder + 1) % 3;
     updateMenuTitles();
-    LumaConfig_RequestSaveSettings();
 }
 
 void ScreenshotSettingsMenu_ToggleCombine(void)
 {
     screenshotCombined = !screenshotCombined;
     updateMenuTitles();
-    LumaConfig_RequestSaveSettings();
 }

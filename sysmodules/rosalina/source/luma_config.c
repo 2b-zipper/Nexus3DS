@@ -336,7 +336,7 @@ Result LumaConfig_SaveSettings(void)
     configData.autobootCtrAppmemtype = autobootCtrAppmemtype;
     configData.autobootCtrUseNs = autobootCtrUseNs;
     
-    configData.screenshotFolder = 0;
+    configData.screenshotFolder = screenshotFolder;
     configData.screenshotFlags = 0;
     if (screenshotCombined) configData.screenshotFlags |= 1 << 0;
     configData.homeButtonSimFlags = 0;

@@ -38,7 +38,7 @@ void ScreenToggleMenu_LoadConfig(void)
     
     if (R_SUCCEEDED(res))
     {
-        screenToggleTarget = (u32)out;
+        screenToggleTarget = (u8)out;
     }
 
     res = svcGetSystemInfo(&out, 0x10000, 0x188);

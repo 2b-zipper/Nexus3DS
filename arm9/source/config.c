@@ -821,7 +821,7 @@ static bool readConfigMcu(void)
     // Note: data written with the previous 6-byte layout (lumaVersion, bootCfg, reserved[2], checksum)
     // is always rejected here, as lumaVersion now overlaps with the old bootCfg and reserved[0] fields
     // (thus is < 0x100)
-    if (checksum != configDataMcu.checksum || configDataMcu.lumaVersion < MAKE_LUMA_VERSION_MCU(10, 3, 0))
+    if (checksum != configDataMcu.checksum || configDataMcu.lumaVersion < MAKE_LUMA_VERSION_MCU(10, 3, 0) || true)
     {
         // Invalid data stored in MCU...
         resetConfigMcu();
@@ -879,7 +879,7 @@ bool readConfig(void)
         memset(&configData, 0, sizeof(CfgData));
         configData.formatVersionMajor = CONFIG_VERSIONMAJOR;
         configData.formatVersionMinor = CONFIG_VERSIONMINOR;
-        configData.config |= 1u << PATCHVERSTRING;
+        configData.config |= (1u << PATCHVERSTRING) | (1u << LOADEXTFIRMSANDMODULES) | (1u << PATCHGAMES);
         configData.multiConfig |= 1 << (2 * (u32)NEWCPU); // Default NEWCPU to Clock
         configData.multiConfig |= 1 << (2 * (u32)SPLASHDURATION); // Default splash duration to 3s
         configData.splashDurationMsec = 3000;
@@ -917,18 +917,27 @@ void askForUpgradeProcess(void)
 {
     initScreens();
 
-    drawString(true, 10, 10, COLOR_ORANGE, "Nexus3DS backup confirmation");
-    drawString(true, 10, 10 + SPACING_Y * 2, COLOR_WHITE, "Do you want to install Nexus3DS to CTRNAND?\nThis enables you to boot without an sd card.");
-    drawString(true, 10, 10 + SPACING_Y * 5, COLOR_WHITE, "Doing so will also backup essential files.");
-    drawString(true, 10, 10 + SPACING_Y * 7, COLOR_ORANGE, "Press A to confirm, X to cancel.\nIf you're unsure, press A.");
+    u32 posY = drawString(true, 10, 10, COLOR_ORANGE, "Nexus3DS backup confirmation\n");
+
+    if(isSdMode){
+        posY = drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Do you want to install Nexus3DS to CTRNAND?\nThis enables you to boot without an sd card.\n\nDoing so will also backup essential files.\n");
+    } else {
+        posY = drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Do you want to backup essential files\nto the CTRNAND?\n");
+    }
+
+    posY = drawString(true, 10, posY + SPACING_Y, COLOR_ORANGE, "Press A to confirm, X to cancel.\nIf you're unsure, press A.\n");
 
     while (true) {
         u32 pressed = waitInput(false);
 
         if (pressed & (BUTTON_A | BUTTON_X)) {
-            if (pressed & BUTTON_A)
-                doLumaUpgradeProcess() ? drawString(true, 10, 10 + SPACING_Y * 10, COLOR_GREEN, "Backup complete!") :
-                                         drawString(true, 10, 10 + SPACING_Y * 10, COLOR_RED, "Backup failed! Is your SD card corrupted?");
+            if (pressed & BUTTON_A) {
+                doLumaUpgradeProcess() ? drawString(true, 10, posY + SPACING_Y, COLOR_GREEN, "Backup complete!") :
+                                         drawString(true, 10, posY + SPACING_Y, COLOR_RED, "Backup failed!");
+            } else {
+                drawString(true, 10, posY + SPACING_Y, COLOR_WHITE, "Backup skipped.");
+            }
+
             break;
         }
     }

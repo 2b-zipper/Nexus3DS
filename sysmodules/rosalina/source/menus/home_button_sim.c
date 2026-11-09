@@ -56,14 +56,12 @@ void HomeButtonSimMenu_ToggleReturnToHomeMenu(void)
 {
     hideReturnToHomeMenu = !hideReturnToHomeMenu;
     updateMenuTitles();
-    LumaConfig_RequestSaveSettings();
 }
 
 void HomeButtonSimMenu_ToggleEnableCombo(void)
 {
     enableHomeButtonCombo = !enableHomeButtonCombo;
     updateMenuTitles();
-    LumaConfig_RequestSaveSettings();
 }
 
 bool HomeButtonSimMenu_ShouldShowReturnToHomeMenu(void)
@@ -103,6 +101,4 @@ void HomeButtonSimMenu_ChangeCombo(void)
         Draw_FlushFramebuffer();
         Draw_Unlock();
     } while (!(waitInput() & KEY_B) && !menuShouldExit);
-    
-    LumaConfig_RequestSaveSettings();
 }
