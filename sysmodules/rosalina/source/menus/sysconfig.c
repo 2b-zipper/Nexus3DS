@@ -57,6 +57,7 @@ Menu sysconfigMenu = {
         { "Toggle Power Button", METHOD, .method=&SysConfigMenu_TogglePowerButton },
         { "Toggle power to card slot", METHOD, .method=&SysConfigMenu_ToggleCardIfPower},
         { "Toggle Screen options...", MENU, .menu=&screenToggleMenu, .visibility=&menuCheckNoO2ds},
+        { "Change screen brightness", METHOD, .method = &SysConfigMenu_ChangeScreenBrightness },
         {},
     }
 };
