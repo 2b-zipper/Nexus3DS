@@ -821,7 +821,7 @@ static bool readConfigMcu(void)
     // Note: data written with the previous 6-byte layout (lumaVersion, bootCfg, reserved[2], checksum)
     // is always rejected here, as lumaVersion now overlaps with the old bootCfg and reserved[0] fields
     // (thus is < 0x100)
-    if (checksum != configDataMcu.checksum || configDataMcu.lumaVersion < MAKE_LUMA_VERSION_MCU(10, 3, 0) || true)
+    if (checksum != configDataMcu.checksum || configDataMcu.lumaVersion < MAKE_LUMA_VERSION_MCU(10, 3, 0))
     {
         // Invalid data stored in MCU...
         resetConfigMcu();
