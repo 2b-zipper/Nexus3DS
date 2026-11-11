@@ -1281,8 +1281,8 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
     bool startPressed = false;
 
-    // konami code setup
-    const u32 konamiCode[] = { BUTTON_UP, BUTTON_UP, BUTTON_DOWN, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_B, BUTTON_A };
+    // Konami code (Nexus flavor) setup
+    const u32 konamiCode[] = { BUTTON_UP, BUTTON_UP, BUTTON_DOWN, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_DOWN, BUTTON_RIGHT };
 	const u32 konami = sizeof(konamiCode) / sizeof(u32);
 	u32 konamiState = 0;
 

@@ -102,8 +102,9 @@ The reason why is because there is an anti-cheat which prevent the use of Luma3D
 
 **Expert Zone:**
 
-* To toggle hidden options quickly, you can use the Konami code in the luma configuration menu.
-  > **WARNING:** These are advanced options not meant to be used by regular users, use carefully!
+* To toggle hidden options quickly, you can use the Konami code (Nexus flavor) in the luma configuration menu.
+  > **WARNING:** These are advanced options not meant to be used by regular users, use carefully! \
+  > **Note:** Konami code (Nexus flavor): Last 2 button presses (B+A) are replaced with DPAD DOWN+RIGHT.
 * No errdisp + instant reboot option - Press A+B+X+Y+Start to instantly reboot - *Original by [cooolgamer](https://github.com/cooolgamer)*
   > **Note:** Using instant reboot may corrupt your SD card
 * Experimental faster boot time for big sd cards
