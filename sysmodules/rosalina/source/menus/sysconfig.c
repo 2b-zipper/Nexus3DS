@@ -135,9 +135,6 @@ void SysConfigMenu_SetLedMasterBrightnessOverride(void)
             "Press X to clear or refresh the override.\n"
             "Press B to go back.\n"
         );
-        Draw_DrawString(SYSCONFIG_COL(0), SYSCONFIG_ROW(11), COLOR_TITLE, "TIP:");
-        Draw_DrawString(SYSCONFIG_COL(1), SYSCONFIG_ROW(12), COLOR_WHITE, "* Press SELECT anywhere in the Rosalina menu\n");
-        Draw_DrawString(SYSCONFIG_COL(3), SYSCONFIG_ROW(13), COLOR_WHITE,"to toggle leds! (This won't be saved though)");
         Draw_FlushFramebuffer();
         Draw_Unlock();
 
@@ -890,25 +887,27 @@ void SysConfigMenu_ChangeScreenBrightness(void)
         );
         posY = Draw_DrawString(10, posY, COLOR_GREEN, "Controls: \n");
         posY = Draw_DrawString(10, posY, COLOR_WHITE, "Up/Down for +-1, Right/Left for +-10.\n");
-        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Hold X/A for Top/Bottom screen only. \n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "Hold X/Y for Top/Bottom screen only. \n");
         if(hasTopScreen)
         {
-            posY = Draw_DrawString(10, posY, COLOR_WHITE, "Press Y to toggle top/bottom backlight.\n\n");
+            posY = Draw_DrawString(10, posY, COLOR_WHITE, "Press SELECT to toggle top/bottom backlight.\n\n");
         }
-        posY = Draw_DrawString(10, posY, COLOR_TITLE, "Press START to begin, B to exit.\n\n");
+        posY = Draw_DrawString(10, posY, COLOR_TITLE, "Press A to begin, B to exit.\n\n");
 
         posY = Draw_DrawString(10, posY, COLOR_RED, "WARNING: \n");
-        posY = Draw_DrawString(10, posY, COLOR_WHITE, "  * all changes revert after sleep mode.");
         if(isn3dsOnly)
         {
-            posY = Draw_DrawString(10, posY, COLOR_WHITE, "\n  * auto brightness must be disabled\n    to work properly.");
+            posY = Draw_DrawString(10, posY, COLOR_WHITE, " * auto brightness must be disabled to work.\n");
         }
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, " * all changes revert after sleep mode.\n\n");
+        posY = Draw_DrawString(10, posY, COLOR_TITLE, "TIP: \n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, " * Hold SELECT and press dpad left/right anywhere\n in the rosalina menu to quickly change brightness!");
         Draw_FlushFramebuffer();
         Draw_Unlock();
 
         u32 pressed = waitInputWithTimeout(1000);
 
-        if (pressed & KEY_START)
+        if (pressed & KEY_A)
             break;
 
         if (pressed & KEY_B)
@@ -950,7 +949,7 @@ void SysConfigMenu_ChangeScreenBrightness(void)
                 lumTop += increment;
                 lumTop = lumTop < (s32)currentMin ? (s32)currentMin : lumTop;
                 lumTop = lumTop > currentMax ? currentMax : lumTop;
-            } else if (kHeld & KEY_A) {
+            } else if (kHeld & KEY_Y) {
                 lumBot += increment;
                 lumBot = lumBot < (s32)currentMin ? (s32)currentMin : lumBot;
                 lumBot = lumBot > currentMax ? currentMax : lumBot;
@@ -965,7 +964,7 @@ void SysConfigMenu_ChangeScreenBrightness(void)
 
             if (kHeld & KEY_X)
                 GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP), lumTop);
-            else if (kHeld & KEY_A)
+            else if (kHeld & KEY_Y)
                 GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_BOTTOM), lumBot);
             else {
                 GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP), lumTop);
@@ -973,7 +972,7 @@ void SysConfigMenu_ChangeScreenBrightness(void)
             }
         }
 
-        if ((pressed & KEY_Y) && hasTopScreen) {
+        if ((pressed & KEY_SELECT) && hasTopScreen) {
             u8 result, botStatus, topStatus;
             mcuHwcInit();
             MCUHWC_ReadRegister(0x0F, &result, 1); // https://www.3dbrew.org/wiki/I2C_Registers#Device_3

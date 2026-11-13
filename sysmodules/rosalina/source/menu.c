@@ -471,48 +471,6 @@ void menuThreadMain(void)
             while (!(waitInput() & screenToggleCombo));
         }
 
-        // Update screen brightness.
-        if((kHeld & KEY_SELECT) && (kHeld & (KEY_DUP | KEY_DDOWN)))
-        {
-            const u8 step = 4; // Feel free to change me.
-            u32 lumTop = getCurrentLuminance(true);
-            u32 lumBot = getCurrentLuminance(false);
-            u32 minLum = getMinLuminancePreset();
-            u32 maxLum = getMaxLuminancePreset();
-
-            if (kHeld & KEY_DUP)
-            {
-                if((lumTop + step) < maxLum)
-                    lumTop += step;
-                else
-                    lumTop = maxLum;
-
-                if((lumBot + step) < maxLum)
-                    lumBot += step;
-                else
-                    lumBot = maxLum;
-            }
-            else if (kHeld & KEY_DDOWN)
-            {
-                if(lumTop >= step && (lumTop - step) > minLum)
-                    lumTop -= step;
-                else
-                    lumTop = minLum;
-
-                if(lumBot >= step && (lumBot - step) > minLum)
-                    lumBot -= step;
-                else
-                    lumBot = minLum;
-            }
-
-            if(R_SUCCEEDED(gspLcdInit())) // Assume it may fail. If it does, brightness won't change, anyway.
-            {
-                GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP), lumTop);
-                GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_BOTTOM), lumBot);
-                gspLcdExit();
-            }
-        }
-
         if (saveSettingsRequest) {
             LumaConfig_SaveSettings();
             saveSettingsRequest = false;
@@ -755,6 +713,7 @@ void menuShow(Menu *root)
     do
     {
         u32 pressed = waitInputWithTimeout(30);
+        u32 held = scanHeldKeys();
         numItems = menuCountItems(currentMenu);
 
         if(!menuComboReleased && (scanHeldKeys() & menuCombo) != menuCombo)
@@ -831,15 +790,34 @@ void menuShow(Menu *root)
                 nwmExtExit();
             }
         }
-        else if(pressed & KEY_SELECT)
+        else if((held & KEY_SELECT) && (pressed & (KEY_LEFT | KEY_RIGHT)))
         {
-            // Toggle LEDs
-            mcuHwcInit();
-            u8 result;
-            MCUHWC_ReadRegister(0x28, &result, 1);
-            result = ~result;
-            MCUHWC_WriteRegister(0x28, &result, 1);
-            mcuHwcExit();
+            const u8 step = 4; // Feel free to change me.
+            u32 currLum = getCurrentLuminance(true);
+            u32 minLum = getMinLuminancePreset();
+            u32 maxLum = getMaxLuminancePreset();
+
+            if (pressed & KEY_RIGHT)
+            {
+                if((currLum + step) < maxLum)
+                    currLum += step;
+                else
+                    currLum = maxLum;
+            }
+            else if (pressed & KEY_LEFT)
+            {
+                if(currLum >= step && (currLum - step) > minLum)
+                    currLum -= step;
+                else
+                    currLum = minLum;
+            }
+
+            svcKernelSetState(0x10000, 2); // unblock gsp
+            gspLcdInit();
+            GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_TOP), currLum);
+            GSPLCD_SetBrightnessRaw(BIT(GSP_SCREEN_BOTTOM), currLum);
+            gspLcdExit();
+            svcKernelSetState(0x10000, 2); // block gsp again
         }
 
         Draw_Lock();
